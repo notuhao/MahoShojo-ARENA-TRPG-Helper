@@ -1,31 +1,49 @@
+// pages/index.tsx
+
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-// 导入Next.js的Image组件
 import Image from 'next/image';
 import Footer from '../components/Footer';
 
-interface LogoConfig {
+// 定义功能入口的配置信息
+interface FeatureConfig {
   id: string;
-  src: string;
-  width: number;
-  height: number;
-  alt: string;
-  href?: string;
-  className?: string;
-  color?: string;
+  title: string;
+  description: string;
+  href: string;
+  className: string;
+  iconSrc: string;
 }
 
-const logoConfigs: LogoConfig[] = [
+// 功能列表配置
+const featureConfigs: FeatureConfig[] = [
+  {
+    id: 'character-creator',
+    title: '交互式角色创建器',
+    description: '引导式创建、自动计算、构筑独一-无二的魔法少女。',
+    href: '/character/create', // 未来我们的角色创建器页面
+    className: 'creator-card',
+    iconSrc: '/mahou-title.svg',
+  },
+  {
+    id: 'rulebook',
+    title: '在线核心规则书',
+    description: '随时查阅《魔法少女竞技场》的核心规则与设定。',
+    href: '/rules', // 未来我们的规则书页面
+    className: 'rules-card',
+    iconSrc: '/scenario.svg',
+  },
+  // 可以在这里继续添加其他功能入口
 ];
 
 export default function Home() {
   const [, setImagesLoaded] = useState(false);
 
+  // 预加载功能卡片的图标，提升用户体验
   useEffect(() => {
     const preloadImages = async () => {
-      const imageUrls = logoConfigs.map(logo => logo.src);
-
+      const imageUrls = featureConfigs.map(config => config.iconSrc);
       const imagePromises = imageUrls.map(url => {
         return new Promise((resolve, reject) => {
           const img = new window.Image();
@@ -39,8 +57,8 @@ export default function Home() {
         await Promise.all(imagePromises);
         setImagesLoaded(true);
       } catch (error) {
-        console.log('图片预加载完成，但部分图片可能失败', error);
-        setImagesLoaded(true);
+        console.log('部分图片预加载失败', error);
+        setImagesLoaded(true); // 即使部分失败也继续渲染
       }
     };
 
@@ -50,13 +68,13 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>✨ 魔法少女竞技场TRPG ✨</title>
+        <title>✨ 魔法少女竞技场TRPG - 辅助工具 ✨</title>
         <meta name="description" content="为魔法少女竞技场 TRPG 打造的辅助工具" />
-        {logoConfigs.map(logo => (
+        {featureConfigs.map(config => (
           <link
-            key={logo.id}
+            key={config.id}
             rel="preload"
-            href={logo.src}
+            href={config.iconSrc}
             as="image"
             type="image/svg+xml"
           />
@@ -71,28 +89,36 @@ export default function Home() {
                 width={280}
                 height={180}
                 alt="魔法少女竞技场TRPG"
-                unoptimized={true} 
+                unoptimized={true}
               />
             </div>
 
             <p className="subtitle text-center mb-4">
-              欢迎来到魔法少女竞技场！
+              欢迎来到A.R.E.N.A.辅助工具站，选择一个工具开始你的冒险吧！
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {logoConfigs.filter(logo => logo.href).map((logo) => (
-                <Link key={logo.id} href={logo.href!} className={`feature-button ${logo.className}`}>
-                  <div className="gradient-overlay"></div>
-                  <div className="feature-button-content">
-                    <div className="feature-title-container">
-                      <Image
-                        src={logo.src}
-                        width={logo.width}
-                        height={logo.height}
-                        alt={logo.alt}
-                        className="feature-title-svg"
-                        unoptimized={true}
-                      />
+              {featureConfigs.map((config) => (
+                <Link key={config.id} href={config.href} passHref>
+                  <div className={`feature-button ${config.className}`}>
+                    <div className="gradient-overlay"></div>
+                    <div className="feature-button-content !p-6">
+                      <div className="flex items-center w-full">
+                        <div className="flex-shrink-0">
+                          <Image
+                            src={config.iconSrc}
+                            width={48}
+                            height={48}
+                            alt={config.title}
+                            className="feature-title-svg"
+                            unoptimized={true}
+                          />
+                        </div>
+                        <div className="ml-4 text-left">
+                          <h3 className="text-lg font-bold text-gray-800">{config.title}</h3>
+                          <p className="text-sm text-gray-600 mt-1">{config.description}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -101,7 +127,7 @@ export default function Home() {
 
             <div style={{ marginTop: '2rem', textAlign: 'center' }}>
               <p style={{ fontSize: '0.8rem', marginTop: '1rem', color: '#999', fontStyle: 'italic' }}>
-                设定来源于小说《下班，然后变成魔法少女》以及网站“魔法少女生成器”
+                设定来源于小说《下班，然后变成魔法少女》以及“魔法少女生成器”
               </p>
             </div>
           </div>

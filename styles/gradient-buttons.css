@@ -335,3 +335,14 @@
     animation: none;
   }
 }
+
+/* 功能卡片样式 */
+.creator-card .gradient-overlay {
+  background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 50%, #ff6b6b 100%);
+}
+.rules-card .gradient-overlay {
+  background: linear-gradient(45deg, #A8E6C1 0%, #81E3D3 50%, #7DD3C0 100%);
+}
+.feature-button-content {
+   padding: 1.5rem !important;
+}
