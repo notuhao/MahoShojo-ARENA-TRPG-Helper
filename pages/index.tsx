@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+// 导入Next.js的Image组件
+import Image from 'next/image';
 import Footer from '../components/Footer';
 
 interface LogoConfig {
@@ -64,7 +66,13 @@ export default function Home() {
         <div className="container">
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '2rem' }}>
-              <img src="/logo.svg" width={280} height={180} alt="魔法少女竞技场TRPG" />
+              <Image
+                src="/logo.svg"
+                width={280}
+                height={180}
+                alt="魔法少女竞技场TRPG"
+                unoptimized={true} 
+              />
             </div>
 
             <p className="subtitle text-center mb-4">
@@ -77,12 +85,13 @@ export default function Home() {
                   <div className="gradient-overlay"></div>
                   <div className="feature-button-content">
                     <div className="feature-title-container">
-                      <img
+                      <Image
                         src={logo.src}
                         width={logo.width}
                         height={logo.height}
                         alt={logo.alt}
                         className="feature-title-svg"
+                        unoptimized={true}
                       />
                     </div>
                   </div>
