@@ -5,7 +5,7 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": true,
+    // "noEmit": true, 移除此行，让 Next.js 的构建流程完全接管编译工作
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",

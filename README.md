@@ -1,12 +1,12 @@
 # 魔法少女竞技场TRPG - 辅助工具站 (MahoShojo A.R.E.N.A. Helper)
 
-[](https://MahoShojo-ARENA-TRPG.pages.dev)
+[](https://mahoshojo-arena-trpg.pages.dev)
 
 这是一个为桌面角色扮演游戏（TRPG）《魔法少女竞技场》（MahoShojo A.R.E.N.A.）打造的辅助工具项目。旨在为玩家和游戏主持人（GM）提供一套便捷的在线辅助工具，以简化游戏准备流程、提升游戏体验。
 
 本工具基于《下班，然后变成魔法少女》以及“魔法少女生成器”世界观，核心规则参考《魔法少女竞技场 (MahoShojo A.R.E.N.A.) 核心规则书》。
 
-**线上访问地址:** [https://MahoShojo-ARENA-TRPG.pages.dev](https://MahoShojo-ARENA-TRPG.pages.dev)  
+**线上访问地址:** [https://mahoshojo-arena-trpg.pages.dev](https://mahoshojo-arena-trpg.pages.dev)  
 
 ## ✨ 主要功能（规划）
 
@@ -47,7 +47,7 @@
 **2. 克隆项目**
 
 ```bash
-git clone https://github.com/Taikinmaho/MahoShojo-ARENA-TRPG-Helper
+git clone https://github.com/notuhao/MahoShojo-ARENA-TRPG-Helper
 cd MahoShojo-ARENA-TRPG-Helper
 ```
 
