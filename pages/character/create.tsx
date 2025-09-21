@@ -6,17 +6,20 @@ import Link from 'next/link';
 import Footer from '../../components/Footer';
 import AttributesPanel from '../../components/character-creator/AttributesPanel';
 import DerivedStatsPanel from '../../components/character-creator/DerivedStatsPanel';
-// [新增] 导入技能相关组件和数据
 import SkillAllocatorPanel from '../../components/character-creator/SkillAllocatorPanel';
+// [新增] 导入能力构筑相关组件和数据
+import PowerCreatorPanel from '../../components/character-creator/PowerCreatorPanel';
+import { EFFECT_TAGS, MODIFIER_TAGS } from '../../lib/trpg/powers';
 import { SKILLS } from '../../lib/trpg/skills';
 
 /**
  * @fileoverview 魔法少女竞技场TRPG角色创建器主页面。
- * @description [V2 更新] 已集成技能分配系统。
- * 现在页面负责管理核心属性和技能点两个独立的点数池。
+ * @description [V3 更新] 已集成心之花（PCP）能力构筑系统。
+ * 页面现在管理属性、技能和能力三大核心模块。
  */
 
-// 类型定义区
+// --- 类型定义区 ---
+
 export interface CharacterAttributes {
   STR: number; // 力量
   CON: number; // 体质
@@ -26,70 +29,87 @@ export interface CharacterAttributes {
   PER: number; // 感知
   CHM: number; // 魅力
 }
-
-// [新增] 为技能点数定义类型别名，提高可读性
 export type SkillPoints = Record<string, number>;
 
-// [新增] 更新角色卡数据结构，加入技能字段
+// [新增] 定义单个能力的数据结构
+export interface Power {
+  id: number; // 唯一标识符，用于React的key
+  name: string;
+  effectTagId: string;
+  rank: number;
+  modifierTagIds: string[];
+}
+
+// 更新角色卡数据结构，加入powers字段
 export interface CharacterSheet {
   attributes: CharacterAttributes;
   skills: SkillPoints;
-  // TODO: 后续将添加能力等字段
+  powers: Power[];
 }
 
-// 角色属性的初始默认值
+// --- 初始值定义区 ---
+
 const initialAttributes: CharacterAttributes = {
   STR: 40, CON: 40, AGI: 40, MAG: 40, WILL: 40, PER: 40, CHM: 40,
 };
 
-// [新增] 根据技能列表，生成技能点数的初始状态
-// 默认所有技能投入的点数都为0
 const initialSkillPoints: SkillPoints = SKILLS.reduce((acc, skill) => {
   acc[skill.id] = 0;
   return acc;
 }, {} as SkillPoints);
 
+// --- 主组件 ---
 
-// 主组件
 const CharacterCreatorPage: React.FC = () => {
-  // 核心State，管理整个角色数据
+  // 核心State
   const [character, setCharacter] = useState<CharacterSheet>({
     attributes: initialAttributes,
     skills: initialSkillPoints,
+    powers: [], // 初始没有任何能力
   });
 
-  // 规则书中定义的点数预算
+  // 规则预算
   const TOTAL_ATTRIBUTE_POINTS = 280;
-  const TOTAL_SKILL_POINTS = 150; // 
+  const TOTAL_SKILL_POINTS = 150;
+  const TOTAL_PCP = 20;
 
-  // 使用 useMemo 优化计算性能，只有在依赖项变化时才重新计算
-  const spentAttributePoints = useMemo(() => {
-    return Object.values(character.attributes).reduce((sum, value) => sum + value, 0);
-  }, [character.attributes]);
+  // 使用 useMemo 优化计算性能
+  const spentAttributePoints = useMemo(() => Object.values(character.attributes).reduce((sum, value) => sum + value, 0), [character.attributes]);
+  const spentSkillPoints = useMemo(() => Object.values(character.skills).reduce((sum, value) => sum + value, 0), [character.skills]);
 
-  // [新增] 计算已花费的技能点
-  const spentSkillPoints = useMemo(() => {
-    return Object.values(character.skills).reduce((sum, value) => sum + value, 0);
-  }, [character.skills]);
+  // [新增] 计算已花费的PCP点数
+  const spentPcpPoints = useMemo(() => {
+    return character.powers.reduce((totalCost, power) => {
+      let powerCost = 0;
+      const effect = EFFECT_TAGS.find(e => e.id === power.effectTagId);
+      if (effect) {
+        powerCost += effect.isScalable ? effect.cost * power.rank : effect.cost;
+      }
+      power.modifierTagIds.forEach(modId => {
+        const modifier = MODIFIER_TAGS.find(m => m.id === modId);
+        if (modifier) {
+          powerCost += modifier.cost;
+        }
+      });
+      return totalCost + powerCost;
+    }, 0);
+  }, [character.powers]);
 
-  // 更新属性的回调函数
-  // 使用 useCallback 避免在子组件重渲染时不必要地重新创建函数
+  // 更新回调函数区 (使用 useCallback 优化)
   const handleAttributesChange = useCallback((newAttributes: CharacterAttributes) => {
-    setCharacter(prev => ({
-      ...prev,
-      attributes: newAttributes,
-    }));
+    setCharacter(prev => ({ ...prev, attributes: newAttributes }));
   }, []);
 
-  // [新增] 更新技能点数的回调函数
   const handleSkillPointsChange = useCallback((skillId: string, points: number) => {
     setCharacter(prev => ({
       ...prev,
-      skills: {
-        ...prev.skills,
-        [skillId]: points,
-      },
+      skills: { ...prev.skills, [skillId]: points },
     }));
+  }, []);
+  
+  // [新增] 更新能力列表的回调函数
+  const handlePowersChange = useCallback((newPowers: Power[]) => {
+    setCharacter(prev => ({...prev, powers: newPowers}));
   }, []);
 
   return (
@@ -101,12 +121,9 @@ const CharacterCreatorPage: React.FC = () => {
 
       <div className="magic-background-white min-h-screen py-10">
         <div className="container mx-auto px-4 max-w-4xl">
-          
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-800">交互式角色创建器</h1>
-            <p className="text-gray-600 mt-2">
-              遵循《魔法少女竞技场核心规则书》，一步步构筑你的传奇。
-            </p>
+            <p className="text-gray-600 mt-2">遵循《魔法少女竞技场核心规则书》，一步步构筑你的传奇。</p>
           </div>
 
           <div className="space-y-8">
@@ -126,7 +143,7 @@ const CharacterCreatorPage: React.FC = () => {
               <DerivedStatsPanel attributes={character.attributes} />
             </section>
             
-            {/* [新增] 步骤二：技能分配 */}
+            {/* 步骤二：技能分配 */}
             <section>
               <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 2: 分配技能点</h2>
               <SkillAllocatorPanel
@@ -138,7 +155,16 @@ const CharacterCreatorPage: React.FC = () => {
               />
             </section>
 
-            {/* TODO: 后续步骤将在这里添加 */}
+            {/* [新增] 步骤三：能力构筑 */}
+            <section>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 3: 设计心之花能力</h2>
+              <PowerCreatorPanel
+                powers={character.powers}
+                onPowersChange={handlePowersChange}
+                totalPcp={TOTAL_PCP}
+                spentPcp={spentPcpPoints}
+              />
+            </section>
 
           </div>
           
