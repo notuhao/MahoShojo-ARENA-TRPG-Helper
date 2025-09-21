@@ -13,7 +13,7 @@ export interface AIProvider {
   weight?: number; // 负载均衡权重，数值越大被选中概率越高
 }
 
-// [新增 v0.2.1] AI 安全检查策略配置接口 (SRS 3.1.1)
+// AI 安全检查策略配置接口 (SRS 3.1.1)
 export interface SafetyCheckPolicy {
     character: 'non-native-only' | 'all' | 'none'; // 角色文件检查策略
     scenario: 'non-native-only' | 'all' | 'none';  // 情景文件检查策略
@@ -135,8 +135,6 @@ const getSkipNativeScenarioCheck = (): boolean => {
   const enabled = process.env.NEXT_PUBLIC_SKIP_NATIVE_SCENARIO_CHECK ?? 'true';
   return enabled === 'true';
 };
-
-// --- [新增 v0.2.1] AI安全检查策略配置 ---
 
 /**
  * 获取AI安全检查策略 (SRS 3.1.1)
