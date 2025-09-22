@@ -22,7 +22,7 @@ const featureConfigs: FeatureConfig[] = [
     id: 'character-creator',
     title: '交互式角色创建器',
     description: '引导式创建、自动计算、构筑独一-无二的魔法少女。',
-    href: '/character/create', // 未来我们的角色创建器页面
+    href: '/character/create',
     className: 'creator-card',
     iconSrc: '/mahou-title.svg',
   },
@@ -30,9 +30,17 @@ const featureConfigs: FeatureConfig[] = [
     id: 'rulebook',
     title: '在线核心规则书',
     description: '随时查阅《魔法少女竞技场》的核心规则与设定。',
-    href: '/rules', // 未来我们的规则书页面
+    href: '/rules',
     className: 'rules-card',
     iconSrc: '/scenario.svg',
+  },
+  {
+    id: 'dice-roller',
+    title: '在线骰子工具',
+    description: '内置d100判定和奖惩骰规则的便捷投骰器。',
+    href: '/dice',
+    className: 'dice-roller-card',
+    iconSrc: '/file.svg', // 暂时使用一个通用图标
   },
   // 可以在这里继续添加其他功能入口
 ];
