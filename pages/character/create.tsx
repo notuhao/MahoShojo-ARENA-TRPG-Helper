@@ -7,19 +7,16 @@ import Image from 'next/image';
 import Footer from '../../components/Footer';
 import AttributesPanel from '../../components/character-creator/AttributesPanel';
 import DerivedStatsPanel from '../../components/character-creator/DerivedStatsPanel';
-import SkillAllocatorPanel from '../../components/character-creator/SkillAllocatorPanel';
+import SkillAllocatorPanel, { CustomSkill } from '../../components/character-creator/SkillAllocatorPanel';
 import PowerCreatorPanel from '../../components/character-creator/PowerCreatorPanel';
 import CharacterInfoPanel from '../../components/character-creator/CharacterInfoPanel';
 import ExportPanel from '../../components/character-creator/ExportPanel';
-import { EFFECT_TAGS, MODIFIER_TAGS } from '../../lib/trpg/powers';
+import { EFFECT_TAGS, MODIFIER_TAGS, EffectTag, ModifierTag } from '../../lib/trpg/powers';
 import { SKILLS } from '../../lib/trpg/skills';
 import CharacterSheetDisplay from '../../components/character-creator/CharacterSheetDisplay';
 import { X, Upload, ClipboardPaste } from 'lucide-react';
 import AICharacterCreatorPanel from '@/components/character-creator/AICharacterCreatorPanel';
-
-/**
- * @fileoverview 魔法少女竞技场TRPG角色创建器主页面。
- */
+import { AIGeneratedCharacterData } from '@/lib/schemas/characterSheetSchema';
 
 // --- 类型定义区 ---
 
@@ -100,30 +97,39 @@ const CharacterCreatorPage: React.FC = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 规则预算
+  // 【修正】自定义内容的状态类型
+  const [customSkills, setCustomSkills] = useState<CustomSkill[]>([]);
+  const [customEffectTags, setCustomEffectTags] = useState<EffectTag[]>([]);
+  const [customModifierTags, setCustomModifierTags] = useState<ModifierTag[]>([]);
+  
   const TOTAL_ATTRIBUTE_POINTS = 280;
   const TOTAL_SKILL_POINTS = 150;
   const TOTAL_PCP = 20;
 
   // 优化计算性能
   const spentAttributePoints = useMemo(() => Object.values(character.attributes).reduce((sum, value) => sum + value, 0), [character.attributes]);
-  const spentSkillPoints = useMemo(() => Object.values(character.skills).reduce((sum, value) => sum + value, 0), [character.skills]);
+  const spentSkillPoints = useMemo(() => {
+    const standardPoints = Object.values(character.skills).reduce((sum, value) => sum + value, 0);
+    const customPoints = customSkills.reduce((sum, skill) => sum + (skill.points || 0), 0);
+    return standardPoints + customPoints;
+  }, [character.skills, customSkills]);
+  
   const spentPcpPoints = useMemo(() => {
+    const allEffectTags = [...EFFECT_TAGS, ...customEffectTags];
+    const allModifierTags = [...MODIFIER_TAGS, ...customModifierTags];
     return character.powers.reduce((totalCost, power) => {
       let powerCost = 0;
-      const effect = EFFECT_TAGS.find(e => e.id === power.effectTagId);
+      const effect = allEffectTags.find(e => e.id === power.effectTagId);
       if (effect) {
         powerCost += effect.isScalable ? effect.cost * power.rank : effect.cost;
       }
       power.modifierTagIds.forEach(modId => {
-        const modifier = MODIFIER_TAGS.find(m => m.id === modId);
-        if (modifier) {
-          powerCost += modifier.cost;
-        }
+        const modifier = allModifierTags.find(m => m.id === modId);
+        if (modifier) powerCost += modifier.cost;
       });
       return totalCost + powerCost;
     }, 0);
-  }, [character.powers]);
+  }, [character.powers, customEffectTags, customModifierTags]);
 
   // 【新增】检测移动设备，默认展开粘贴区域
   useEffect(() => {
@@ -137,8 +143,8 @@ const CharacterCreatorPage: React.FC = () => {
   const processAndLoadJson = (jsonString: string) => {
     try {
       const importedData = JSON.parse(jsonString);
-
-      // 深度合并导入的数据和初始模板，优雅处理缺失字段
+      const dataToParse = importedData.characterSheet ? importedData.characterSheet : importedData;
+      
       const newCharacterSheet: CharacterSheet = {
         info: { ...initialCharacterSheet.info, ...(importedData.info || {}) },
         attributes: { ...initialCharacterSheet.attributes, ...(importedData.attributes || {}) },
@@ -150,10 +156,16 @@ const CharacterCreatorPage: React.FC = () => {
       };
       
       setCharacter(newCharacterSheet);
+
+      if (importedData.customSkills) setCustomSkills(importedData.customSkills);
+      if (importedData.customPowerTags) {
+          setCustomEffectTags(importedData.customPowerTags.filter((t: any) => t.type === 'effect'));
+          setCustomModifierTags(importedData.customPowerTags.filter((t: any) => t.type === 'modifier'));
+      }
+      
       setMessage({ type: 'success', text: '角色数据加载成功！' });
       // 滚动到第一个编辑面板，方便用户查看
       document.getElementById('step-1-info')?.scrollIntoView({ behavior: 'smooth' });
-
     } catch (error) {
       setMessage({ type: 'error', text: '加载失败：无效的JSON格式。' });
       console.error("JSON parsing error:", error);
@@ -194,11 +206,20 @@ const CharacterCreatorPage: React.FC = () => {
   const handleSkillPointsChange = useCallback((skillId: string, points: number) => setCharacter(prev => ({ ...prev, skills: { ...prev.skills, [skillId]: points } })), []);
   const handlePowersChange = useCallback((newPowers: Power[]) => setCharacter(prev => ({ ...prev, powers: newPowers })), []);
   const handleInfoChange = useCallback((fieldName: keyof CharacterInfo, value: string) => setCharacter(prev => ({ ...prev, info: { ...prev.info, [fieldName]: value } })), []);
-  const handleCharacterGenerated = useCallback((generatedSheet: CharacterSheet) => {
-    const powersWithUniqueIds = generatedSheet.powers.map(p => ({ ...p, id: Date.now() + Math.random() }));
-    setCharacter({ ...generatedSheet, powers: powersWithUniqueIds });
+  
+  const handleCharacterGenerated = useCallback((data: AIGeneratedCharacterData) => {
+    const { characterSheet, customSkills: aiCustomSkills, customPowerTags: aiCustomTags } = data;
+    const powersWithUniqueIds = characterSheet.powers.map(p => ({ ...p, id: Date.now() + Math.random() }));
+    setCharacter({ ...characterSheet, powers: powersWithUniqueIds });
+    
+    // 【修正】为AI返回的自定义技能添加默认的 points 属性
+    setCustomSkills((aiCustomSkills || []).map(skill => ({ ...skill, points: 0 })));
+    setCustomEffectTags((aiCustomTags || []).filter(tag => tag.type === 'effect'));
+    setCustomModifierTags((aiCustomTags || []).filter(tag => tag.type === 'modifier'));
+    
     document.getElementById('step-1-info')?.scrollIntoView({ behavior: 'smooth' });
   }, []);
+
   const handleSaveImageCallback = useCallback((imageUrl: string, width: number, height: number) => {
     setSavedImageUrl(imageUrl);
     setSavedImageSize({ width, height });
@@ -294,6 +315,8 @@ const CharacterCreatorPage: React.FC = () => {
                 attributes={character.attributes}
                 skillPoints={character.skills}
                 onSkillPointsChange={handleSkillPointsChange}
+                customSkills={customSkills}
+                onCustomSkillsChange={setCustomSkills}
                 totalPoints={TOTAL_SKILL_POINTS}
                 spentPoints={spentSkillPoints}
               />
@@ -305,6 +328,10 @@ const CharacterCreatorPage: React.FC = () => {
               <PowerCreatorPanel
                 powers={character.powers}
                 onPowersChange={handlePowersChange}
+                customEffectTags={customEffectTags}
+                onCustomEffectTagsChange={setCustomEffectTags}
+                customModifierTags={customModifierTags}
+                onCustomModifierTagsChange={setCustomModifierTags}
                 totalPcp={TOTAL_PCP}
                 spentPcp={spentPcpPoints}
               />

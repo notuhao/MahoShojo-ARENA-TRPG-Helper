@@ -2,21 +2,32 @@
 
 import React, { useMemo } from 'react';
 import { Power } from '../../pages/character/create';
-import { EFFECT_TAGS, MODIFIER_TAGS } from '../../lib/trpg/powers';
+import { EFFECT_TAGS, MODIFIER_TAGS, EffectTag, ModifierTag } from '../../lib/trpg/powers';
 import { X } from 'lucide-react';
 
 interface PowerEditorProps {
   power: Power;
   onPowerChange: (updatedPower: Power) => void;
   onRemove: () => void;
+  customEffectTags: EffectTag[];
+  customModifierTags: ModifierTag[];
 }
 
 /**
  * 单个能力编辑器组件
  * @description 负责单个魔法能力的创建和编辑，包括选择效果、设定阶数、附加修正，并计算该能力的PCP成本。
  */
-const PowerEditor: React.FC<PowerEditorProps> = ({ power, onPowerChange, onRemove }) => {
-  const selectedEffect = EFFECT_TAGS.find(tag => tag.id === power.effectTagId);
+const PowerEditor: React.FC<PowerEditorProps> = ({ 
+  power, 
+  onPowerChange, 
+  onRemove,
+  customEffectTags,
+  customModifierTags
+}) => {
+  const allEffectTags = useMemo(() => [...EFFECT_TAGS, ...customEffectTags], [customEffectTags]);
+  const allModifierTags = useMemo(() => [...MODIFIER_TAGS, ...customModifierTags], [customModifierTags]);
+
+  const selectedEffect = allEffectTags.find(tag => tag.id === power.effectTagId);
 
   // 实时计算单个能力的PCP成本
   const pcpCost = useMemo(() => {
@@ -25,18 +36,16 @@ const PowerEditor: React.FC<PowerEditorProps> = ({ power, onPowerChange, onRemov
       cost += selectedEffect.isScalable ? selectedEffect.cost * power.rank : selectedEffect.cost;
     }
     power.modifierTagIds.forEach(modId => {
-      const modifier = MODIFIER_TAGS.find(m => m.id === modId);
-      if (modifier) {
-        cost += modifier.cost;
-      }
+      const modifier = allModifierTags.find(m => m.id === modId);
+      if (modifier) cost += modifier.cost;
     });
     return cost;
-  }, [power, selectedEffect]);
+  }, [power, selectedEffect, allModifierTags]);
 
   // 更新效果标签
   const handleEffectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newEffectId = e.target.value;
-    const newEffect = EFFECT_TAGS.find(tag => tag.id === newEffectId);
+    const newEffect = allEffectTags.find(tag => tag.id === newEffectId);
     onPowerChange({
       ...power,
       effectTagId: newEffectId,
@@ -72,9 +81,18 @@ const PowerEditor: React.FC<PowerEditorProps> = ({ power, onPowerChange, onRemov
       <div className="flex items-center gap-4">
         <select value={power.effectTagId} onChange={handleEffectChange} className="input-field flex-1">
           <option value="">-- 选择一个效果 --</option>
-          {EFFECT_TAGS.map(tag => (
-            <option key={tag.id} value={tag.id}>{tag.name} ({tag.cost} PCP{tag.isScalable ? '/阶' : ''})</option>
-          ))}
+          <optgroup label="预设效果">
+            {EFFECT_TAGS.map(tag => (
+              <option key={tag.id} value={tag.id}>{tag.name} ({tag.cost} PCP{tag.isScalable ? '/阶' : ''})</option>
+            ))}
+          </optgroup>
+          {customEffectTags.length > 0 && (
+             <optgroup label="自定义效果">
+                {customEffectTags.map(tag => (
+                  <option key={tag.id} value={tag.id}>{tag.name} ({tag.cost} PCP{tag.isScalable ? '/阶' : ''})</option>
+                ))}
+             </optgroup>
+          )}
         </select>
         {selectedEffect?.isScalable && (
           <div className="flex items-center gap-2">
@@ -84,7 +102,7 @@ const PowerEditor: React.FC<PowerEditorProps> = ({ power, onPowerChange, onRemov
               type="number"
               value={power.rank}
               onChange={(e) => onPowerChange({ ...power, rank: Math.max(1, parseInt(e.target.value) || 1) })}
-              className="input-field w-20 text-center"
+              className="input-field !p-1 w-20 text-center"
               min="1"
             />
           </div>
@@ -95,10 +113,11 @@ const PowerEditor: React.FC<PowerEditorProps> = ({ power, onPowerChange, onRemov
       <div>
         <p className="text-sm font-medium text-gray-700 mb-2">修正标签:</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {MODIFIER_TAGS.map(mod => {
+          {allModifierTags.map(mod => {
             const inputId = `mod-${power.id}-${mod.id}`;
+            const isCustom = !MODIFIER_TAGS.some(preset => preset.id === mod.id);
             return (
-              <label key={mod.id} htmlFor={inputId} className="flex items-center space-x-2 p-2 bg-white border rounded-md cursor-pointer">
+              <label key={mod.id} htmlFor={inputId} className={`flex items-center space-x-2 p-2 border rounded-md cursor-pointer ${isCustom ? 'bg-purple-50 border-purple-200' : 'bg-white'}`}>
                 <input
                   id={inputId}
                   type="checkbox"

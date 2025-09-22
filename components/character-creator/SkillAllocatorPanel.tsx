@@ -3,12 +3,25 @@
 import React from 'react';
 import { CharacterAttributes } from '../../pages/character/create';
 import { SKILLS, Skill } from '../../lib/trpg/skills';
+import { X } from 'lucide-react';
+
+// 新增：自定义技能的类型
+export interface CustomSkill {
+  id: string; // 唯一ID，例如 'custom_12345'
+  name: string;
+  attribute: string; // 用户输入的属性关联，例如 "STR+AGI"
+  base: number;
+  points: number;
+}
 
 // 定义组件的Props接口
 interface SkillAllocatorPanelProps {
   attributes: CharacterAttributes;
   skillPoints: Record<string, number>;
   onSkillPointsChange: (skillId: string, points: number) => void;
+  // 新增Props
+  customSkills: CustomSkill[];
+  onCustomSkillsChange: (newCustomSkills: CustomSkill[]) => void;
   totalPoints: number;
   spentPoints: number;
 }
@@ -58,15 +71,79 @@ const SkillRow: React.FC<{
  * 技能分配面板
  * @description 管理所有技能的点数分配，并显示总技能点预算和使用情况。
  */
+const CustomSkillRow: React.FC<{
+  skill: CustomSkill;
+  onUpdate: (updatedSkill: CustomSkill) => void;
+  onRemove: () => void;
+}> = ({ skill, onUpdate, onRemove }) => {
+  const finalValue = (skill.base || 0) + (skill.points || 0);
+
+  const handleChange = (field: keyof CustomSkill, value: string | number) => {
+    onUpdate({ ...skill, [field]: value });
+  };
+  
+  return (
+    <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 space-y-2">
+      <div className="flex justify-between items-center">
+        <input
+          type="text"
+          value={skill.name}
+          onChange={(e) => handleChange('name', e.target.value)}
+          placeholder="技能名称"
+          className="font-semibold text-gray-800 bg-transparent border-b border-purple-200 focus:outline-none"
+        />
+        <button onClick={onRemove} className="text-red-500 hover:text-red-700"><X size={16}/></button>
+      </div>
+      <div className="grid grid-cols-12 gap-2 items-center text-sm">
+          <div className="col-span-4">
+            <input type="text" value={skill.attribute} onChange={e => handleChange('attribute', e.target.value)} placeholder="核心属性" className="input-field !p-1 h-8 text-xs"/>
+          </div>
+          <div className="col-span-2">
+            <input type="number" value={skill.base} onChange={e => handleChange('base', parseInt(e.target.value) || 0)} className="input-field !p-1 h-8 text-center text-xs" />
+          </div>
+          <div className="col-span-3">
+            <input type="number" value={skill.points} onChange={e => handleChange('points', parseInt(e.target.value) || 0)} className="input-field !p-1 h-8 text-center text-xs" />
+          </div>
+          <div className="col-span-3 text-center text-lg font-bold text-purple-700">{finalValue}%</div>
+      </div>
+    </div>
+  );
+}
+
+
 const SkillAllocatorPanel: React.FC<SkillAllocatorPanelProps> = ({
   attributes,
   skillPoints,
   onSkillPointsChange,
+  customSkills,
+  onCustomSkillsChange,
   totalPoints,
   spentPoints,
 }) => {
   const remainingPoints = totalPoints - spentPoints;
   const progressPercentage = (spentPoints / totalPoints) * 100;
+
+  const addCustomSkill = () => {
+    const newSkill: CustomSkill = {
+      id: `custom_${Date.now()}`,
+      name: '新技能',
+      attribute: 'STR+AGI',
+      base: 10,
+      points: 0,
+    };
+    onCustomSkillsChange([...customSkills, newSkill]);
+  };
+
+  const updateCustomSkill = (index: number, updatedSkill: CustomSkill) => {
+    const newSkills = [...customSkills];
+    newSkills[index] = updatedSkill;
+    onCustomSkillsChange(newSkills);
+  };
+  
+  const removeCustomSkill = (index: number) => {
+    onCustomSkillsChange(customSkills.filter((_, i) => i !== index));
+  };
+
 
   return (
     <div className="p-6 bg-white rounded-xl shadow-md">
@@ -110,7 +187,16 @@ const SkillAllocatorPanel: React.FC<SkillAllocatorPanelProps> = ({
             onChange={(points) => onSkillPointsChange(skill.id, points)}
           />
         ))}
+        {/* 【新增】渲染自定义技能 */}
+        {customSkills.map((skill, index) => (
+            <CustomSkillRow key={skill.id} skill={skill} onUpdate={(updated) => updateCustomSkill(index, updated)} onRemove={() => removeCustomSkill(index)} />
+        ))}
       </div>
+      
+      <button onClick={addCustomSkill} className="w-full mt-4 py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 hover:border-gray-400 transition-colors">
+        + 添加自定义技能
+      </button>
+
     </div>
   );
 };

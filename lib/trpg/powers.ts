@@ -10,11 +10,10 @@ export interface EffectTag {
   id: string;
   name: string;
   cost: number;
-  isScalable: boolean; // 标记成本是否按“阶”计算
+  isScalable?: boolean; // 【修正】设为可选
   description: string;
 }
 
-// 修正标签的类型定义
 export interface ModifierTag {
   id: string;
   name: string;

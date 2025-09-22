@@ -2,18 +2,19 @@
 
 import React, { useState } from 'react';
 import { Sparkles, BrainCircuit } from 'lucide-react';
-import { CharacterSheet } from '../../pages/character/create';
+import { type CharacterSheet } from '../../pages/character/create';
+import { type AIGeneratedCharacterData } from '@/lib/schemas/characterSheetSchema';
+
 
 /**
- * @fileoverview AI辅助角色创建面板组件 (升级版)。
+ * @fileoverview AI辅助角色创建面板组件 (V2)。
  * @description
- * 提供UI让用户输入自然语言描述，调用API生成角色卡。
- * - [新增] 添加了“使用轻量模型”选项，以提高生成速度和成功率。
- * - [优化] 改进了流式响应的处理和错误信息的展示。
+ * - [新增] 增加了“允许AI创造自定义技能”和“允许AI创造自定义能力”的开关。
+ * - [修改] 更新 `onCharacterGenerated` 回调的参数类型，以传递完整的AI生成数据。
  */
 
 interface AICharacterCreatorPanelProps {
-  onCharacterGenerated: (characterSheet: CharacterSheet) => void;
+  onCharacterGenerated: (data: AIGeneratedCharacterData) => void;
   isGenerating: boolean;
   setIsGenerating: (isGenerating: boolean) => void;
 }
@@ -26,6 +27,9 @@ const AICharacterCreatorPanel: React.FC<AICharacterCreatorPanelProps> = ({
   const [prompt, setPrompt] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [useLightweightModel, setUseLightweightModel] = useState(true);
+  
+  const [allowCustomSkills, setAllowCustomSkills] = useState(false);
+  const [allowCustomPowers, setAllowCustomPowers] = useState(false);
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
@@ -40,6 +44,8 @@ const AICharacterCreatorPanel: React.FC<AICharacterCreatorPanelProps> = ({
         body: JSON.stringify({
           prompt,
           isDowngrade: useLightweightModel,
+          allowCustomSkills,
+          allowCustomPowers,
         }),
       });
 
@@ -59,9 +65,8 @@ const AICharacterCreatorPanel: React.FC<AICharacterCreatorPanelProps> = ({
         fullResponseText += decoder.decode(value, { stream: true });
       }
       
-      // 流结束后，fullResponseText 包含了完整的JSON字符串
-      const generatedSheet = JSON.parse(fullResponseText);
-      onCharacterGenerated(generatedSheet);
+      const generatedData: AIGeneratedCharacterData = JSON.parse(fullResponseText);
+      onCharacterGenerated(generatedData);
 
     } catch (err: any) {
       console.error(err);
@@ -89,6 +94,17 @@ const AICharacterCreatorPanel: React.FC<AICharacterCreatorPanelProps> = ({
         className="input-field w-full"
         disabled={isGenerating}
       />
+      
+      <div className="space-y-2 text-sm text-gray-700">
+        <label className="flex items-center cursor-pointer">
+          <input type="checkbox" checked={allowCustomSkills} onChange={(e) => setAllowCustomSkills(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 mr-2" disabled={isGenerating} />
+          允许AI创造自定义技能
+        </label>
+        <label className="flex items-center cursor-pointer">
+          <input type="checkbox" checked={allowCustomPowers} onChange={(e) => setAllowCustomPowers(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 mr-2" disabled={isGenerating} />
+          允许AI创造自定义能力
+        </label>
+      </div>
 
       <div className="flex items-center justify-center">
         <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">

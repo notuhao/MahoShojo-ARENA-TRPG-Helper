@@ -1,17 +1,13 @@
 // lib/schemas/characterSheetSchema.ts
 
 import { z } from 'zod';
-// 移除了对 SKILLS, EFFECT_TAGS, MODIFIER_TAGS 的导入，因为不再需要它们来构建枚举
 
 /**
- * @fileoverview 定义了用于AI生成的角色卡Zod Schema。
+ * @fileoverview 定义了用于AI生成的角色卡Zod Schema (V2)。
  * @description
- * 这个Schema精确地描述了一个完整的角色卡（CharacterSheet）的数据结构，
- * 包括角色信息、核心属性、技能点和能力构筑。
- * Vercel AI SDK将使用此Schema来约束AI的输出，确保返回的数据格式正确、可直接使用。
- * 所有的规则（如总点数、属性范围）都在AI的系统提示词中进行约束，
- * Schema本身只负责结构和类型的校验。
- * 允许AI生成不在预设列表中的自定义能力标签。
+ * [新增] 引入了一个顶层的 `aiGeneratedCharacterSchema` 来包装标准角色卡。
+ * 这个新结构允许AI在生成角色数据的同时，返回任何它所创造的自定义技能和能力标签的定义。
+ * 这使得AI可以更自由地创作，同时保持了数据的结构化和可用性。
  */
 
 // 角色叙事信息 Schema
@@ -58,13 +54,38 @@ const powerSchema = z.object({
   modifierTagIds: z.array(z.string()).describe('附加的修正标签ID数组 (例如: range_long, elemental_fire)'),
 });
 
-// 最终完整的角色卡 Schema
-export const characterSheetSchema = z.object({
+// 标准角色卡 Schema
+const characterSheetSchema = z.object({
   info: characterInfoSchema,
   attributes: characterAttributesSchema,
   skills: skillPointsSchema,
   powers: z.array(powerSchema).describe('角色的能力列表，总PCP花费必须严格等于20点'),
 });
 
-// 从Schema推断出TypeScript类型，以便在代码中使用
-export type AICharacterSheet = z.infer<typeof characterSheetSchema>;
+// 【新增】自定义技能的 Schema 定义
+const customSkillSchema = z.object({
+    id: z.string().describe("自定义技能的唯一英文ID，例如 'custom_mech_repair'"),
+    name: z.string().describe("自定义技能的名称，例如 '魔导机械维修'"),
+    attribute: z.string().describe("与此技能相关的核心属性，例如 'MAG+PER'"),
+    base: z.number().min(0).describe("该技能的基础成功率（不含投入点数）"),
+});
+
+// 【新增】自定义能力标签的 Schema 定义
+const customPowerTagSchema = z.object({
+    id: z.string().describe("自定义标签的唯一英文ID，例如 'custom_mental_damage'"),
+    name: z.string().describe("自定义标签的显示名称，例如 '[精神伤害]'"),
+    cost: z.number().describe("该标签的PCP成本"),
+    type: z.enum(['effect', 'modifier']).describe("标签类型：是'效果'还是'修正'"),
+    isScalable: z.boolean().optional().describe("【仅用于效果标签】此效果是否可以叠加阶数"),
+    description: z.string().describe("对该标签效果的简短描述"),
+});
+
+// 【新增】最终用于AI生成的顶层 Schema
+export const aiGeneratedCharacterSchema = z.object({
+  characterSheet: characterSheetSchema.describe("包含角色所有核心数据的对象"),
+  customSkills: z.array(customSkillSchema).optional().describe("AI创造的任何自定义技能的定义列表"),
+  customPowerTags: z.array(customPowerTagSchema).optional().describe("AI创造的任何自定义能力标签的定义列表")
+});
+
+// 从新的顶层 Schema 推断出最终的 TypeScript 类型
+export type AIGeneratedCharacterData = z.infer<typeof aiGeneratedCharacterSchema>;
