@@ -1,4 +1,4 @@
-// pages/rules.tsx
+// 文件: pages/rules.tsx
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GetStaticProps, NextPage } from 'next';
@@ -9,15 +9,17 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Footer from '../components/Footer';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronsRight, ChevronsLeft } from 'lucide-react';
 
 /**
- * @fileoverview 魔法少女竞技场TRPG核心规则书页面。
+ * @fileoverview 魔法少女竞技场TRPG核心规则书页面 (v0.1.1 重构版)。
  * @description 
  * [V1.1] 修复了构建时出现的 a11y (可访问性) ESLint 错误。
- * 1. 明确传递 children 给自定义标题组件，以解决 `heading-has-content` 问题。
- * 2. 为移动端菜单的遮罩层 div 添加了 role 和 onKeyDown 属性，以解决 `click-events-have-key-events` 和 `no-static-element-interactions` 问题。
- * 3. 优化了标题ID的生成逻辑，使其更健壮。
+ * [V0.1.1 重构]
+ * - 实现了SRS v0.1.1中FR-6/UI-1的需求，重构了UI和交互。
+ * - 桌面端侧边栏目录现在是可折叠的，并默认为折叠状态，以优化阅读空间。
+ * - 移动端菜单功能保持不变。
+ * - 优化了标题ID的生成逻辑，使其更健壮。
  */
 
 // --- 类型定义 ---
@@ -46,7 +48,7 @@ const generateHeadingId = (text: string) => {
 interface RulebookSidebarProps {
   headings: Heading[];
   activeId: string;
-  onLinkClick?: () => void; // 新增回调，用于在移动端点击后关闭菜单
+  onLinkClick?: () => void; // 用于在移动端点击后关闭菜单
 }
 
 const RulebookSidebar: React.FC<RulebookSidebarProps> = ({ headings, activeId, onLinkClick }) => {
@@ -62,7 +64,7 @@ const RulebookSidebar: React.FC<RulebookSidebarProps> = ({ headings, activeId, o
                 onClick={onLinkClick} // 点击时调用回调
                 className={`block py-1 text-sm transition-colors ${
                   activeId === heading.id
-                    ? 'text-purple-600 font-bold'
+                    ? 'text-purple-600 font-bold border-r-2 border-purple-600' // 高亮状态
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
                 style={{ paddingLeft: `${(heading.level - 1) * 1}rem` }}
@@ -82,35 +84,29 @@ const RulebookSidebar: React.FC<RulebookSidebarProps> = ({ headings, activeId, o
 const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
   const [activeId, setActiveId] = useState<string>(headings.length > 0 ? headings[0].id : '');
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // 【新增】桌面端侧边栏状态
+  const [isDesktopSidebarOpen, setDesktopSidebarOpen] = useState(false);
   
-  // 使用useRef来持有IntersectionObserver实例，防止重复创建
   const observer = useRef<IntersectionObserver | null>(null);
-  
-  // 存储标题元素的引用，避免在useEffect中重复查询DOM
   const headingElementsRef = useRef<Map<string, Element>>(new Map());
 
-  // 使用IntersectionObserver实现滚动时高亮当前章节
   useEffect(() => {
-    // 清理旧的observer
     if (observer.current) {
       observer.current.disconnect();
     }
   
     const handleObserver = (entries: IntersectionObserverEntry[]) => {
-        // 从上到下找到第一个在视口内的标题并高亮它
         const intersectingEntries = entries.filter(e => e.isIntersecting);
         if (intersectingEntries.length > 0) {
-            // entries是按DOM顺序排列的，所以第一个就是最上面的
             setActiveId(intersectingEntries[0].target.id);
         }
     };
   
     observer.current = new IntersectionObserver(handleObserver, {
-      rootMargin: '0px 0px -80% 0px', // 在视口顶部20%的区域内寻找标题
+      rootMargin: '0px 0px -80% 0px',
       threshold: 1.0,
     });
   
-    // 填充引用Map并观察元素
     headingElementsRef.current.clear();
     headings.forEach(h => {
       const el = document.getElementById(h.id);
@@ -124,8 +120,6 @@ const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
   }, [headings]);
 
 
-  // **[FIXED]** 自定义Markdown组件渲染，解决 a11y 问题
-  // 我们显式地传递 children，并使用更健壮的方式从 children 中提取文本来生成ID
   const components = {
     h1: ({ node, children, ...props }: any) => {
       const text = React.Children.toArray(children).join('');
@@ -178,14 +172,27 @@ const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
         </header>
 
         <main className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
-            <aside className="hidden md:block w-64 lg:w-72 flex-shrink-0">
-              <div className="sticky top-24"> {/* 增加粘性定位的偏移量 */}
+          <div className="flex relative">
+            {/* 【重构】桌面端可折叠侧边栏 */}
+            <aside className={`hidden md:block flex-shrink-0 transition-all duration-300 ease-in-out ${isDesktopSidebarOpen ? 'w-64 lg:w-72 mr-8' : 'w-0'}`}>
+              <div className={`sticky top-24 h-[calc(100vh-8rem)] overflow-y-auto ${isDesktopSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
                 <RulebookSidebar headings={headings} activeId={activeId} />
               </div>
             </aside>
+            
+            {/* 【新增】桌面端侧边栏开关按钮 */}
+            <div className="hidden md:block">
+                <button 
+                    onClick={() => setDesktopSidebarOpen(!isDesktopSidebarOpen)}
+                    className="fixed top-1/2 -translate-y-1/2 bg-white p-2 rounded-r-lg shadow-lg border border-l-0 z-30 transition-transform duration-300 ease-in-out"
+                    style={{ left: isDesktopSidebarOpen ? '17rem' : '1rem' }} /* 272px = 17rem */
+                    aria-label={isDesktopSidebarOpen ? "折叠目录" : "展开目录"}
+                >
+                    {isDesktopSidebarOpen ? <ChevronsLeft size={20} /> : <ChevronsRight size={20} />}
+                </button>
+            </div>
 
-            <article className="prose lg:prose-lg max-w-none w-full">
+            <article className="prose max-w-none w-full">
               <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
                 {content}
               </ReactMarkdown>
@@ -202,7 +209,6 @@ const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
             isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         } md:hidden`}
       >
-          {/* **[FIXED]** 为遮罩层添加 role 和 onKeyDown，解决 a11y 问题 */}
           <div 
             className="absolute inset-0 bg-black/50" 
             onClick={closeMobileMenu}
@@ -213,7 +219,6 @@ const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
             tabIndex={0}
             aria-label="关闭目录"
           ></div>
-
           <div className="relative w-72 h-full bg-white ml-auto p-6 flex flex-col shadow-lg">
               <button onClick={closeMobileMenu} className="self-end mb-4 p-2" aria-label="关闭目录">
                   <X className="h-6 w-6 text-gray-700" />
@@ -227,13 +232,10 @@ const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
   );
 };
 
-// --- 数据获取 ---
-
 export const getStaticProps: GetStaticProps<RulebookPageProps> = async () => {
   const filePath = path.join(process.cwd(), 'lib', 'trpg', 'rulebook.md');
   const content = fs.readFileSync(filePath, 'utf8');
 
-  // **[IMPROVED]** 优化标题ID生成逻辑
   const headingLines = content.match(/^#+\s+.*/gm) || [];
   const headings: Heading[] = headingLines.map(line => {
     const level = line.match(/^#+/)![0].length;

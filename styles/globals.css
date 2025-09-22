@@ -420,4 +420,45 @@ body {
   h1[id], h2[id], h3[id], h4[id], h5[id], h6[id] {
     scroll-margin-top: 80px; /* 根据你的header高度调整 */
   }
+
+  /* 规则书页面样式优化 */
+  .prose h1 {
+    @apply text-4xl font-bold mb-6 border-b-2 border-purple-200 pb-2;
+  }
+  .prose h2 {
+    @apply text-3xl font-bold mt-12 mb-4 border-b border-gray-200 pb-2;
+  }
+  .prose h3 {
+    @apply text-2xl font-semibold mt-8 mb-4;
+  }
+  .prose h4 {
+    @apply text-xl font-semibold mt-6 mb-3;
+  }
+  .prose p, .prose ul, .prose ol {
+    @apply mb-4 leading-relaxed;
+  }
+  .prose strong {
+    @apply text-purple-800;
+  }
+  .prose table {
+    @apply w-full table-auto border-collapse border border-gray-300 my-6;
+  }
+  .prose thead {
+    @apply bg-gray-100;
+  }
+  .prose th, .prose td {
+    @apply border border-gray-200 px-4 py-2 text-left;
+  }
+  .prose th {
+    @apply font-bold text-gray-700;
+  }
+  .prose code {
+    @apply bg-purple-100 text-purple-800 font-mono text-sm rounded px-1 py-0.5;
+  }
+  .prose pre {
+    @apply bg-gray-800 rounded-lg p-4 overflow-x-auto;
+  }
+  .prose pre code {
+    @apply bg-transparent text-purple-200 p-0;
+  }
 }

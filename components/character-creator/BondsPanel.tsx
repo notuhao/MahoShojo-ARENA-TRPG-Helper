@@ -1,20 +1,24 @@
-// components/character-creator/BondsPanel.tsx
+// 文件: components/character-creator/BondsPanel.tsx
 
 import React from 'react';
 import { Bond } from '../../pages/character/create';
-import { X, PlusCircle } from 'lucide-react';
+import { X, PlusCircle, Sun } from 'lucide-react';
+
+/**
+ * @fileoverview 羁绊系统管理面板 (v0.1.2)
+ * @description 
+ * - [新增] 实现了SRS v0.1.1中FR-2.3.3的需求，添加了“模拟幕间休息”按钮。
+ * - 该按钮会计算所有羁绊的“光辉影响”总和，并更新角色的当前光辉值。
+ */
 
 interface BondsPanelProps {
   bonds: Bond[];
   onBondsChange: (newBonds: Bond[]) => void;
   bondBudget: number; // 羁绊光辉影响的总预算
+  onIntermission: () => void; // 【新增】幕间休息的回调函数
 }
 
-/**
- * 羁绊系统管理面板 (v0.1.1)
- * @description 允许用户创建、编辑和删除结构化的羁绊卡片，并校验光辉影响预算。
- */
-const BondsPanel: React.FC<BondsPanelProps> = ({ bonds, onBondsChange, bondBudget }) => {
+const BondsPanel: React.FC<BondsPanelProps> = ({ bonds, onBondsChange, bondBudget, onIntermission }) => {
   
   // 计算当前所有羁绊的光辉影响总和
   const totalRadianceImpact = bonds.reduce((sum, bond) => sum + bond.radianceImpact, 0);
@@ -48,7 +52,7 @@ const BondsPanel: React.FC<BondsPanelProps> = ({ bonds, onBondsChange, bondBudge
       <div className="flex justify-between items-center border-b pb-2">
         <h3 className="text-xl font-bold text-gray-800">羁绊 (Kizuna)</h3>
         <div className={`text-sm font-medium ${totalRadianceImpact > bondBudget ? 'text-red-500' : 'text-gray-600'}`}>
-          光辉影响: {totalRadianceImpact} / {bondBudget}
+          光辉影响: {totalRadianceImpact > 0 ? '+' : ''}{totalRadianceImpact} / {bondBudget}
         </div>
       </div>
       
@@ -56,6 +60,16 @@ const BondsPanel: React.FC<BondsPanelProps> = ({ bonds, onBondsChange, bondBudge
         在此设定对角色最重要的人或事物。每个羁绊会在“幕间休息”时影响角色的光辉值。
         所有羁绊的“光辉影响”总和不应超过预算。
       </p>
+
+      {/* 【新增】幕间休息功能按钮 */}
+      <button 
+        onClick={onIntermission}
+        className="w-full generate-button flex items-center justify-center gap-2 !mb-4"
+        style={{ background: 'linear-gradient(45deg, #f6d365, #fda085)' }}
+      >
+        <Sun size={18} />
+        模拟幕间休息 (恢复光辉)
+      </button>
 
       <div className="space-y-4">
         {bonds.map((bond, index) => (

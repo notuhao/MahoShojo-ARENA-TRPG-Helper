@@ -185,6 +185,28 @@ const CharacterCreatorPage: React.FC = () => {
   const handleVitalsChange = useCallback((field: 'hp' | 'mp' | 'radiance', newStat: DynamicStat) => setCharacter(prev => ({ ...prev, [field]: newStat })), []);
   const handleShadowPointsChange = useCallback((points: number) => setCharacter(prev => ({ ...prev, shadowPoints: points })), []);
   const handleBondsChange = useCallback((newBonds: Bond[]) => setCharacter(prev => ({ ...prev, bonds: newBonds })), []);
+  // 处理幕间休息的回调函数
+  const handleIntermission = useCallback(() => {
+    setCharacter(prev => {
+      // 计算所有羁绊的光辉影响总和
+      const totalRadianceImpact = prev.bonds.reduce((sum, bond) => sum + bond.radianceImpact, 0);
+      // 计算新的光辉值，确保不超过上限
+      const newCurrentRadiance = Math.min(prev.radiance.max, prev.radiance.current + totalRadianceImpact);
+      
+      // 设置一个提示消息，告诉用户发生了什么
+      setMessage({ type: 'success', text: `幕间休息完成！光辉值恢复了 ${newCurrentRadiance - prev.radiance.current} 点。` });
+
+      // 返回更新后的角色状态
+      return {
+        ...prev,
+        radiance: {
+          ...prev.radiance,
+          current: newCurrentRadiance,
+        },
+      };
+    });
+  }, []);
+
   const handleNarrativeUpdate = useCallback((field: string, value: any) => setCharacter(prev => ({ ...prev, [field]: value })), []);
 
   const handleStatusEffectsChange = useCallback((effects: string[]) => setCharacter(prev => ({ ...prev, statusEffects: effects })), []);
@@ -389,7 +411,12 @@ const CharacterCreatorPage: React.FC = () => {
               <SkillAllocatorPanel attributes={character.attributes} skillPoints={character.skills} onSkillPointsChange={handleSkillPointsChange} customSkills={customSkills} onCustomSkillsChange={setCustomSkills} totalPoints={totalSkillPoints} spentPoints={spentSkillPoints} />
             </section>
             <section id="step-4-bonds">
-              <BondsPanel bonds={character.bonds} onBondsChange={handleBondsChange} bondBudget={bondBudget} />
+              <BondsPanel
+                bonds={character.bonds}
+                onBondsChange={handleBondsChange}
+                bondBudget={bondBudget}
+                onIntermission={handleIntermission}
+              />
             </section>
             <section id="step-5-narrative">
               <NarrativePanel magicConstruct={character.magicConstruct} wonderlandRule={character.wonderlandRule} blooming={character.blooming} gemScepter={character.gemScepter} onUpdate={handleNarrativeUpdate} unlockedAbilities={unlocks} />
