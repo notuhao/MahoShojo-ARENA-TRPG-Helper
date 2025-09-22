@@ -1,0 +1,52 @@
+{
+  "levels": {
+    "seed": {
+      "name": "种 (Seed)",
+      "attributePoints": 280,
+      "skillPoints": 150,
+      "pcp": 20,
+      "bondBudget": 3,
+      "unlocks": []
+    },
+    "sprout": {
+      "name": "芽 (Sprout)",
+      "attributePoints": 285,
+      "skillPoints": 170,
+      "pcp": 25,
+      "bondBudget": 4,
+      "unlocks": ["magicConstruct"]
+    },
+    "leaf": {
+      "name": "叶 (Leaf)",
+      "attributePoints": 290,
+      "skillPoints": 190,
+      "pcp": 30,
+      "bondBudget": 5,
+      "unlocks": ["magicConstruct"]
+    },
+    "bud": {
+      "name": "蕾 (Bud)",
+      "attributePoints": 300,
+      "skillPoints": 215,
+      "pcp": 40,
+      "bondBudget": 6,
+      "unlocks": ["magicConstruct", "wonderlandRule"]
+    },
+    "flower": {
+      "name": "花 (Flower)",
+      "attributePoints": 310,
+      "skillPoints": 240,
+      "pcp": 50,
+      "bondBudget": 7,
+      "unlocks": ["magicConstruct", "wonderlandRule", "blooming"]
+    },
+    "gemScepter": {
+      "name": "宝石权杖 (Gem Scepter)",
+      "attributePoints": 325,
+      "skillPoints": 270,
+      "pcp": 65,
+      "bondBudget": 8,
+      "unlocks": ["magicConstruct", "wonderlandRule", "blooming", "gemScepter"]
+    }
+  }
+}

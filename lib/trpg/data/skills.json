@@ -1,0 +1,121 @@
+[
+  {
+    "id": "brawl",
+    "name": "格斗",
+    "attribute": "STR+AGI",
+    "base": 25,
+    "description": "进行徒手或近战武器攻击。"
+  },
+  {
+    "id": "firearms",
+    "name": "射击",
+    "attribute": "AGI+PER",
+    "base": 15,
+    "description": "使用远程魔装或枪械进行攻击。"
+  },
+  {
+    "id": "throw",
+    "name": "投掷",
+    "attribute": "STR+AGI",
+    "base": 20,
+    "description": "投掷物体或武器。"
+  },
+  {
+    "id": "dodge",
+    "name": "闪避",
+    "attribute": "AGI/2",
+    "base": 0,
+    "description": "躲避攻击和范围效果。基础值直接由属性计算。"
+  },
+  {
+    "id": "channel",
+    "name": "魔力放出",
+    "attribute": "MAG+WILL",
+    "base": 10,
+    "description": "控制和引导纯粹的魔力洪流。"
+  },
+  {
+    "id": "ward",
+    "name": "结界构筑",
+    "attribute": "MAG+CON",
+    "base": 5,
+    "description": "创造魔法护盾或防御性领域。"
+  },
+  {
+    "id": "mysticLore",
+    "name": "神秘学",
+    "attribute": "MAG",
+    "base": 5,
+    "description": "关于魔法国度、残兽和心之花的知识。"
+  },
+  {
+    "id": "persuade",
+    "name": "说服",
+    "attribute": "CHM",
+    "base": 15,
+    "description": "通过逻辑和言辞让他人同意你的观点。"
+  },
+  {
+    "id": "intimidate",
+    "name": "威吓",
+    "attribute": "STR+WILL",
+    "base": 15,
+    "description": "通过气势和威胁强迫他人服从。"
+  },
+  {
+    "id": "empathy",
+    "name": "共情",
+    "attribute": "CHM+WILL",
+    "base": 15,
+    "description": "理解他人情感，提供安慰，恢复光辉值。"
+  },
+  {
+    "id": "perform",
+    "name": "表演",
+    "attribute": "CHM",
+    "base": 5,
+    "description": "通过艺术形式（歌唱、舞蹈等）影响他人。"
+  },
+  {
+    "id": "science",
+    "name": "科技",
+    "attribute": "MAG",
+    "base": 1,
+    "description": "理解和操作高科技设备，包括魔法国度的魔导科技。"
+  },
+  {
+    "id": "medicine",
+    "name": "医疗",
+    "attribute": "MAG+PER",
+    "base": 5,
+    "description": "诊断伤势，进行急救，治疗疾病。"
+  },
+  {
+    "id": "investigate",
+    "name": "调查",
+    "attribute": "PER",
+    "base": 20,
+    "description": "寻找线索，分析现场，解读信息。"
+  },
+  {
+    "id": "stealth",
+    "name": "潜行",
+    "attribute": "AGI",
+    "base": 10,
+    "description": "不被察觉地移动或隐藏。"
+  },
+  {
+    "id": "athletics",
+    "name": "运动",
+    "attribute": "STR+AGI",
+    "base": 10,
+    "description": "跑、跳、攀爬等身体活动。"
+  },
+  {
+    "id": "sleightOfHand",
+    "name": "巧手",
+    "attribute": "AGI",
+    "base": 10,
+    "description": "进行精细的手部操作，如开锁或扒窃。"
+  }
+]

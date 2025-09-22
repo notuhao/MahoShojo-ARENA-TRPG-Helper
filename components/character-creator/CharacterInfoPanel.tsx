@@ -9,12 +9,12 @@ interface CharacterInfoPanelProps {
 }
 
 /**
- * 角色叙事信息面板
- * @description 提供文本输入区域，用于填写角色的背景、信念等信息。
+ * 角色叙事信息面板 (v0.1.1)
+ * @description 提供了角色的核心叙事信息输入区域，新增了外观和阵营字段。
  */
 const CharacterInfoPanel: React.FC<CharacterInfoPanelProps> = ({ info, onInfoChange }) => {
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     onInfoChange(e.target.name as keyof CharacterInfo, e.target.value);
   };
 
@@ -49,7 +49,55 @@ const CharacterInfoPanel: React.FC<CharacterInfoPanelProps> = ({ info, onInfoCha
           />
         </div>
       </div>
+
+      {/* 新增：外观 */}
+      <div>
+        <label htmlFor="appearance" className="input-label">外观描述</label>
+        <textarea
+          id="appearance"
+          name="appearance"
+          value={info.appearance}
+          onChange={handleInputChange}
+          rows={4}
+          placeholder="描述她的魔法少女形态，包括服装、配饰、主色调和整体风格。"
+          className="input-field"
+        />
+      </div>
       
+      {/* 新增：阵营 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <label htmlFor="faction" className="input-label">阵营所属</label>
+            <select
+                id="faction"
+                name="faction"
+                value={info.faction}
+                onChange={handleInputChange}
+                className="input-field"
+            >
+                <option value="">未定/无</option>
+                <option value="魔法国度">魔法国度</option>
+                <option value="爪痕">爪痕</option>
+                <option value="黑烬黎明">黑烬黎明</option>
+                <option value="其他">其他...</option>
+            </select>
+        </div>
+        {info.faction === '其他' && (
+            <div>
+                <label htmlFor="customFaction" className="input-label">自定义阵营名称</label>
+                <input
+                    type="text"
+                    id="customFaction"
+                    name="customFaction"
+                    value={info.customFaction || ''}
+                    onChange={handleInputChange}
+                    placeholder="请输入自定义阵营"
+                    className="input-field"
+                />
+            </div>
+        )}
+      </div>
+
       {/* 信念 */}
       <div>
         <label htmlFor="belief" className="input-label">信念与愿望</label>
@@ -60,20 +108,6 @@ const CharacterInfoPanel: React.FC<CharacterInfoPanelProps> = ({ info, onInfoCha
           onChange={handleInputChange}
           rows={3}
           placeholder="她为何而战？是什么样的愿望让她成为了魔法少女？"
-          className="input-field"
-        />
-      </div>
-
-      {/* 羁绊 */}
-      <div>
-        <label htmlFor="bonds" className="input-label">羁绊 (Kizuna)</label>
-        <textarea
-          id="bonds"
-          name="bonds"
-          value={info.bonds}
-          onChange={handleInputChange}
-          rows={3}
-          placeholder="对她最重要的人或事物是什么？可以是亲人、朋友、宿敌，或某个执念。"
           className="input-field"
         />
       </div>

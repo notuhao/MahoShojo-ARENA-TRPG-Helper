@@ -11,74 +11,75 @@ import SkillAllocatorPanel, { CustomSkill } from '../../components/character-cre
 import PowerCreatorPanel from '../../components/character-creator/PowerCreatorPanel';
 import CharacterInfoPanel from '../../components/character-creator/CharacterInfoPanel';
 import ExportPanel from '../../components/character-creator/ExportPanel';
+import CharacterSheetDisplay from '../../components/character-creator/CharacterSheetDisplay';
+import AICharacterCreatorPanel from '@/components/character-creator/AICharacterCreatorPanel';
+import VitalsPanel from '@/components/character-creator/VitalsPanel';
+import NarrativePanel from '@/components/character-creator/NarrativePanel';
+import BondsPanel from '@/components/character-creator/BondsPanel';
+
 import { EFFECT_TAGS, MODIFIER_TAGS, EffectTag, ModifierTag } from '../../lib/trpg/powers';
 import { SKILLS } from '../../lib/trpg/skills';
-import CharacterSheetDisplay from '../../components/character-creator/CharacterSheetDisplay';
-import { X, Upload, ClipboardPaste } from 'lucide-react';
-import AICharacterCreatorPanel from '@/components/character-creator/AICharacterCreatorPanel';
+import levelingData from '../../lib/trpg/data/leveling.json';
 import { AIGeneratedCharacterData } from '@/lib/schemas/characterSheetSchema';
-
-// --- 类型定义区 ---
-
-export interface CharacterAttributes {
-  STR: number; // 力量
-  CON: number; // 体质
-  AGI: number; // 敏捷
-  MAG: number; // 魔力
-  WILL: number; // 意志
-  PER: number; // 感知
-  CHM: number; // 魅力
-}
-export type SkillPoints = Record<string, number>;
+import { X, Upload, ClipboardPaste } from 'lucide-react';
 
 // 定义单个能力的数据结构
-export interface Power {
-  id: number;
-  name: string;
-  effectTagId: string;
-  rank: number;
-  modifierTagIds: string[];
-}
+// --- 类型定义区 (v0.1.1) ---
 
 // 角色叙事信息类型
-export interface CharacterInfo {
-  realName: string;
-  codename: string;
-  belief: string;
-  bonds: string;
-  background: string;
-}
+export type PowerLevel = keyof typeof levelingData.levels;
 
-// 最终的角色卡数据结构
+export interface CharacterAttributes { STR: number; CON: number; AGI: number; MAG: number; WILL: number; PER: number; CHM: number; }
+export type SkillPoints = Record<string, number>;
+export interface Power { id: number; name: string; effectTagId: string; rank: number; modifierTagIds: string[]; }
+export interface CharacterInfo { realName: string; codename: string; belief: string; background: string; appearance: string; faction: '魔法国度' | '爪痕' | '黑烬黎明' | '其他' | ''; customFaction?: string; }
+export interface MagicConstruct { name: string; description: string; }
+export interface WonderlandRule { description: string; }
+export interface BloomingAbility { name: string; description: string; }
+export interface Blooming { description: string; abilities: BloomingAbility[]; }
+export interface GemScepter { name: string; ability: string; }
+export interface Bond { id: number; target: string; description: string; statusAndNotes: string; radianceImpact: number; }
+export interface DynamicStat { current: number; max: number; }
 export interface CharacterSheet {
   info: CharacterInfo;
   attributes: CharacterAttributes;
   skills: SkillPoints;
+  hp: DynamicStat;
+  mp: DynamicStat;
+  radiance: DynamicStat;
+  shadowPoints: number;
+  magicConstruct: MagicConstruct;
   powers: Power[];
+  wonderlandRule: WonderlandRule;
+  blooming: Blooming;
+  gemScepter: GemScepter;
+  bonds: Bond[];
+  statusEffects: string[];
+  negativeTraits: string;
 }
 
-// --- 初始值定义区 ---
+// --- 初始值定义区 (v0.1.1) ---
 
-const initialAttributes: CharacterAttributes = {
-  STR: 40, CON: 40, AGI: 40, MAG: 40, WILL: 40, PER: 40, CHM: 40,
-};
+const initialAttributes: CharacterAttributes = { STR: 40, CON: 40, AGI: 40, MAG: 40, WILL: 40, PER: 40, CHM: 40 };
+const initialSkillPoints: SkillPoints = SKILLS.reduce((acc, skill) => { acc[skill.id] = 0; return acc; }, {} as SkillPoints);
+const initialInfo: CharacterInfo = { realName: '', codename: '', belief: '', background: '', appearance: '', faction: '', customFaction: '' };
 
-const initialSkillPoints: SkillPoints = SKILLS.reduce((acc, skill) => {
-  acc[skill.id] = 0;
-  return acc;
-}, {} as SkillPoints);
-
-// [新增] 叙事信息的初始状态
-const initialInfo: CharacterInfo = {
-  realName: '', codename: '', belief: '', bonds: '', background: '',
-};
-
-// 定义一个完整的、空的初始角色卡模板，用于优雅地合并导入数据
 const initialCharacterSheet: CharacterSheet = {
-    info: initialInfo,
-    attributes: initialAttributes,
-    skills: initialSkillPoints,
-    powers: [],
+  info: initialInfo,
+  attributes: initialAttributes,
+  skills: initialSkillPoints,
+  hp: { current: 8, max: 8 },
+  mp: { current: 8, max: 8 },
+  radiance: { current: 8, max: 8 },
+  shadowPoints: 0,
+  magicConstruct: { name: '', description: '' },
+  powers: [],
+  wonderlandRule: { description: '' },
+  blooming: { description: '', abilities: [] },
+  gemScepter: { name: '', ability: '' },
+  bonds: [],
+  statusEffects: [],
+  negativeTraits: '',
 };
 
 
@@ -86,6 +87,8 @@ const initialCharacterSheet: CharacterSheet = {
 
 const CharacterCreatorPage: React.FC = () => {
   const [character, setCharacter] = useState<CharacterSheet>(initialCharacterSheet);
+  const [powerLevel, setPowerLevel] = useState<PowerLevel>('seed');
+  
   const [isGenerating, setIsGenerating] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
@@ -101,45 +104,80 @@ const CharacterCreatorPage: React.FC = () => {
   const [customSkills, setCustomSkills] = useState<CustomSkill[]>([]);
   const [customEffectTags, setCustomEffectTags] = useState<EffectTag[]>([]);
   const [customModifierTags, setCustomModifierTags] = useState<ModifierTag[]>([]);
-  
-  const TOTAL_ATTRIBUTE_POINTS = 280;
-  const TOTAL_SKILL_POINTS = 150;
-  const TOTAL_PCP = 20;
 
-  // 优化计算性能
+  // 动态计算点数预算
+  const { totalAttributePoints, totalSkillPoints, totalPcp, bondBudget, unlocks } = useMemo(() => {
+    const config = levelingData.levels[powerLevel];
+    return {
+      totalAttributePoints: config.attributePoints,
+      totalSkillPoints: config.skillPoints,
+      totalPcp: config.pcp,
+      bondBudget: config.bondBudget,
+      unlocks: config.unlocks
+    };
+  }, [powerLevel]);
+
+  // 实时计算已花费点数
   const spentAttributePoints = useMemo(() => Object.values(character.attributes).reduce((sum, value) => sum + value, 0), [character.attributes]);
   const spentSkillPoints = useMemo(() => {
-    const standardPoints = Object.values(character.skills).reduce((sum, value) => sum + value, 0);
-    const customPoints = customSkills.reduce((sum, skill) => sum + (skill.points || 0), 0);
-    return standardPoints + customPoints;
+    const standard = Object.values(character.skills).reduce((a, b) => a + b, 0);
+    const custom = customSkills.reduce((a, b) => a + (b.points || 0), 0);
+    return standard + custom;
   }, [character.skills, customSkills]);
   
   const spentPcpPoints = useMemo(() => {
-    const allEffectTags = [...EFFECT_TAGS, ...customEffectTags];
-    const allModifierTags = [...MODIFIER_TAGS, ...customModifierTags];
-    return character.powers.reduce((totalCost, power) => {
-      let powerCost = 0;
-      const effect = allEffectTags.find(e => e.id === power.effectTagId);
-      if (effect) {
-        powerCost += effect.isScalable ? effect.cost * power.rank : effect.cost;
-      }
-      power.modifierTagIds.forEach(modId => {
-        const modifier = allModifierTags.find(m => m.id === modId);
-        if (modifier) powerCost += modifier.cost;
-      });
-      return totalCost + powerCost;
-    }, 0);
+      const allTags = [...EFFECT_TAGS, ...customEffectTags, ...MODIFIER_TAGS, ...customModifierTags];
+      return character.powers.reduce((total, power) => {
+          let cost = 0;
+          const effect = allTags.find(t => t.id === power.effectTagId);
+          if (effect && 'isScalable' in effect) cost += effect.isScalable ? effect.cost * power.rank : effect.cost;
+          power.modifierTagIds.forEach(modId => {
+              const modifier = allTags.find(t => t.id === modId);
+              if (modifier) cost += modifier.cost;
+          });
+          return total + cost;
+      }, 0);
   }, [character.powers, customEffectTags, customModifierTags]);
 
-  // 【新增】检测移动设备，默认展开粘贴区域
+  // 当核心属性变化时，自动更新衍生值的上限
   useEffect(() => {
-    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      setIsPasteAreaVisible(true);
-    }
+    const { STR, CON, MAG, WILL } = character.attributes;
+    const maxHp = Math.ceil((CON + STR) / 10);
+    const maxMp = Math.ceil(MAG / 5);
+    const maxRadiance = Math.ceil(WILL / 5);
+    setCharacter(prev => ({
+        ...prev,
+        hp: { max: maxHp, current: Math.min(prev.hp.current, maxHp) },
+        mp: { max: maxMp, current: Math.min(prev.mp.current, maxMp) },
+        radiance: { max: maxRadiance, current: Math.min(prev.radiance.current, maxRadiance) },
+    }));
+  }, [character.attributes]);
+
+
+  // 更新回调函数区
+  const handleAttributesChange = useCallback((newAttributes: CharacterAttributes) => setCharacter(prev => ({ ...prev, attributes: newAttributes })), []);
+  const handleSkillPointsChange = useCallback((skillId: string, points: number) => setCharacter(prev => ({ ...prev, skills: { ...prev.skills, [skillId]: points } })), []);
+  const handlePowersChange = useCallback((newPowers: Power[]) => setCharacter(prev => ({ ...prev, powers: newPowers })), []);
+  const handleInfoChange = useCallback((fieldName: keyof CharacterInfo, value: string) => setCharacter(prev => ({ ...prev, info: { ...prev.info, [fieldName]: value } })), []);
+  const handleVitalsChange = useCallback((field: 'hp' | 'mp' | 'radiance', newStat: DynamicStat) => setCharacter(prev => ({ ...prev, [field]: newStat })), []);
+  const handleShadowPointsChange = useCallback((points: number) => setCharacter(prev => ({ ...prev, shadowPoints: points })), []);
+  const handleBondsChange = useCallback((newBonds: Bond[]) => setCharacter(prev => ({ ...prev, bonds: newBonds })), []);
+  const handleNarrativeUpdate = useCallback((field: string, value: any) => setCharacter(prev => ({ ...prev, [field]: value })), []);
+  const handleCharacterGenerated = useCallback((data: AIGeneratedCharacterData) => {
+    const { characterSheet, customSkills: aiCustomSkills, customPowerTags: aiCustomTags } = data;
+    const fullSheet = { ...initialCharacterSheet, ...characterSheet };
+    setCharacter(fullSheet);
+    setCustomSkills((aiCustomSkills || []).map(skill => ({ ...skill, points: 0 })));
+    setCustomEffectTags((aiCustomTags || []).filter(tag => tag.type === 'effect'));
+    setCustomModifierTags((aiCustomTags || []).filter(tag => tag.type === 'modifier'));
+    document.getElementById('step-1-info')?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+  const handleSaveImageCallback = useCallback((imageUrl: string, width: number, height: number) => {
+    setSavedImageUrl(imageUrl);
+    setSavedImageSize({ width, height });
+    setShowImageModal(true);
   }, []);
 
-  // 【核心功能修复】增强的JSON导入逻辑
   const processAndLoadJson = (jsonString: string) => {
     try {
       const importedData = JSON.parse(jsonString);
@@ -204,31 +242,6 @@ const CharacterCreatorPage: React.FC = () => {
     processAndLoadJson(pastedJson);
   };
 
-  // 更新回调函数区
-  const handleAttributesChange = useCallback((newAttributes: CharacterAttributes) => setCharacter(prev => ({ ...prev, attributes: newAttributes })), []);
-  const handleSkillPointsChange = useCallback((skillId: string, points: number) => setCharacter(prev => ({ ...prev, skills: { ...prev.skills, [skillId]: points } })), []);
-  const handlePowersChange = useCallback((newPowers: Power[]) => setCharacter(prev => ({ ...prev, powers: newPowers })), []);
-  const handleInfoChange = useCallback((fieldName: keyof CharacterInfo, value: string) => setCharacter(prev => ({ ...prev, info: { ...prev.info, [fieldName]: value } })), []);
-  
-  const handleCharacterGenerated = useCallback((data: AIGeneratedCharacterData) => {
-    const { characterSheet, customSkills: aiCustomSkills, customPowerTags: aiCustomTags } = data;
-    const powersWithUniqueIds = characterSheet.powers.map(p => ({ ...p, id: Date.now() + Math.random() }));
-    setCharacter({ ...characterSheet, powers: powersWithUniqueIds });
-    
-    // 【修正】为AI返回的自定义技能添加默认的 points 属性
-    setCustomSkills((aiCustomSkills || []).map(skill => ({ ...skill, points: 0 })));
-    setCustomEffectTags((aiCustomTags || []).filter(tag => tag.type === 'effect'));
-    setCustomModifierTags((aiCustomTags || []).filter(tag => tag.type === 'modifier'));
-    
-    document.getElementById('step-1-info')?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
-  const handleSaveImageCallback = useCallback((imageUrl: string, width: number, height: number) => {
-    setSavedImageUrl(imageUrl);
-    setSavedImageSize({ width, height });
-    setShowImageModal(true);
-  }, []);
-
   return (
     <>
       <Head>
@@ -287,47 +300,70 @@ const CharacterCreatorPage: React.FC = () => {
                 </div>
               </div>
             </section>
-            {/* 步骤一：核心属性 */}
+            {/* 等级选择 */}
+            <section>
+              <div className="p-6 bg-white rounded-xl shadow-md space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="powerLevel" className="input-label">选择初始力量层级</label>
+                        <select
+                            id="powerLevel"
+                            value={powerLevel}
+                            onChange={(e) => setPowerLevel(e.target.value as PowerLevel)}
+                            className="input-field"
+                        >
+                            {Object.entries(levelingData.levels).map(([key, value]) => (
+                                <option key={key} value={key}>{value.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+              </div>
+            </section>
+            
+            <section><AICharacterCreatorPanel onCharacterGenerated={handleCharacterGenerated} isGenerating={isGenerating} setIsGenerating={setIsGenerating} /></section>
+            
+            {/* 核心属性 */}
             <section>
               <AICharacterCreatorPanel onCharacterGenerated={handleCharacterGenerated} isGenerating={isGenerating} setIsGenerating={setIsGenerating} />
             </section>
             <section id="step-1-info">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 1: 完善角色信息</h2>
               <CharacterInfoPanel info={character.info} onInfoChange={handleInfoChange} />
             </section>
 
             <section id="step-2-attributes">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 2: 分配核心属性</h2>
               <AttributesPanel
                 attributes={character.attributes}
                 onAttributesChange={handleAttributesChange}
-                totalPoints={TOTAL_ATTRIBUTE_POINTS}
+                totalPoints={totalAttributePoints}
                 spentPoints={spentAttributePoints}
               />
             </section>
-
-            {/* 衍生数值展示 */}
+            
+            {/* 衍生与动态数值 */}
             <section>
               <DerivedStatsPanel attributes={character.attributes} />
             </section>
+            <section>
+              <VitalsPanel hp={character.hp} mp={character.mp} radiance={character.radiance} shadowPoints={character.shadowPoints} onVitalsChange={handleVitalsChange} onShadowPointsChange={handleShadowPointsChange} />
+            </section>
             
-            {/* 步骤三：技能分配 */}
+            {/* 技能、羁绊、能力 */}
             <section id="step-3-skills">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 3: 分配技能点</h2>
               <SkillAllocatorPanel
                 attributes={character.attributes}
                 skillPoints={character.skills}
                 onSkillPointsChange={handleSkillPointsChange}
                 customSkills={customSkills}
                 onCustomSkillsChange={setCustomSkills}
-                totalPoints={TOTAL_SKILL_POINTS}
+                totalPoints={totalSkillPoints}
                 spentPoints={spentSkillPoints}
               />
             </section>
-
-            {/* 步骤四：能力构筑 */}
-            <section id="step-4-powers">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 4: 设计能力</h2>
+            <section id="step-4-bonds">
+              <BondsPanel bonds={character.bonds} onBondsChange={handleBondsChange} bondBudget={bondBudget} />
+            </section>
+            <section id="step-5-powers">
               <PowerCreatorPanel
                 powers={character.powers}
                 onPowersChange={handlePowersChange}
@@ -335,38 +371,20 @@ const CharacterCreatorPage: React.FC = () => {
                 onCustomEffectTagsChange={setCustomEffectTags}
                 customModifierTags={customModifierTags}
                 onCustomModifierTagsChange={setCustomModifierTags}
-                totalPcp={TOTAL_PCP}
+                totalPcp={totalPcp}
                 spentPcp={spentPcpPoints}
               />
             </section>
-
-            {/* 步骤五：预览与图片生成区域 */}
-            <section id="step-5-preview">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 5: 预览与生成</h2>
-              <CharacterSheetDisplay 
-                characterSheet={character} 
-                onSaveImage={handleSaveImageCallback}
-                spentAttributePoints={spentAttributePoints}
-                spentSkillPoints={spentSkillPoints}
-                spentPcpPoints={spentPcpPoints}
-                customSkills={customSkills}
-                customEffectTags={customEffectTags}
-                customModifierTags={customModifierTags}
-              />
+            <section id="step-6-abilities">
+              <PowerCreatorPanel powers={character.powers} onPowersChange={handlePowersChange} customEffectTags={customEffectTags} onCustomEffectTagsChange={setCustomEffectTags} customModifierTags={customModifierTags} onCustomModifierTagsChange={setCustomModifierTags} totalPcp={totalPcp} spentPcp={spentPcpPoints} />
             </section>
 
-            {/* 步骤六：导出 */}
-            <section id="step-6-export">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 6: 导出JSON</h2>
-              <ExportPanel 
-                characterSheet={character}
-                customSkills={customSkills}
-                customEffectTags={customEffectTags}
-                customModifierTags={customModifierTags}
-                spentAttributePoints={spentAttributePoints}
-                spentSkillPoints={spentSkillPoints}
-                spentPcpPoints={spentPcpPoints}
-              />
+            {/* 预览与导出 */}
+            <section id="step-7-preview">
+              <CharacterSheetDisplay characterSheet={character} powerLevel={powerLevel} onSaveImage={handleSaveImageCallback} spentAttributePoints={spentAttributePoints} spentSkillPoints={spentSkillPoints} spentPcpPoints={spentPcpPoints} customSkills={customSkills} customEffectTags={customEffectTags} customModifierTags={customModifierTags} />
+            </section>
+            <section id="step-8-export">
+              <ExportPanel characterSheet={character} customSkills={customSkills} customEffectTags={customEffectTags} customModifierTags={customModifierTags} spentAttributePoints={spentAttributePoints} spentSkillPoints={spentSkillPoints} spentPcpPoints={spentPcpPoints} />
             </section>
 
           </div>
@@ -381,6 +399,7 @@ const CharacterCreatorPage: React.FC = () => {
         </div>
 
         {/* --- 图片模态框 --- */}
+        {/* 图片模态框 */}
         {showImageModal && savedImageUrl && (
           <div
             role="button"
