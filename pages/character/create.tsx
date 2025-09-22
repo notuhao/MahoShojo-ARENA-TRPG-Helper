@@ -255,8 +255,8 @@ const CharacterCreatorPage: React.FC = () => {
             onClick={() => setShowImageModal(false)}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowImageModal(false); }}
           >
-            {/* 豁免内容区域的 a11y 规则 */}
-            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
+            {/* 豁免内容区域的 a11y 规则：这里的 onClick 用于阻止事件冒泡，是必要的交互逻辑 */}
+            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
             <div 
               role="dialog" aria-modal="true" aria-labelledby="image-modal-title" 
               className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-auto relative p-4"

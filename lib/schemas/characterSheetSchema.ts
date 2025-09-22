@@ -1,8 +1,7 @@
 // lib/schemas/characterSheetSchema.ts
 
 import { z } from 'zod';
-import { SKILLS } from '../trpg/skills';
-import { EFFECT_TAGS, MODIFIER_TAGS } from '../trpg/powers';
+// 移除了对 SKILLS, EFFECT_TAGS, MODIFIER_TAGS 的导入，因为不再需要它们来构建枚举
 
 /**
  * @fileoverview 定义了用于AI生成的角色卡Zod Schema。
@@ -12,12 +11,8 @@ import { EFFECT_TAGS, MODIFIER_TAGS } from '../trpg/powers';
  * Vercel AI SDK将使用此Schema来约束AI的输出，确保返回的数据格式正确、可直接使用。
  * 所有的规则（如总点数、属性范围）都在AI的系统提示词中进行约束，
  * Schema本身只负责结构和类型的校验。
+ * 允许AI生成不在预设列表中的自定义能力标签。
  */
-
-// 从技能和能力定义中动态生成合法的ID列表，用于枚举校验
-const skillIds = SKILLS.map(skill => skill.id);
-const effectTagIds = EFFECT_TAGS.map(tag => tag.id);
-const modifierTagIds = MODIFIER_TAGS.map(tag => tag.id);
 
 // 角色叙事信息 Schema
 const characterInfoSchema = z.object({
@@ -40,9 +35,15 @@ const characterAttributesSchema = z.object({
 }).describe('角色的7项核心属性，总和必须严格等于280点');
 
 // 技能点 Schema
-// 动态创建一个对象，键是技能ID，值是投入的点数
+// 由于技能ID是固定的，我们仍然可以动态生成以获得更好的类型提示和校验
+const SKILL_IDS = [
+  'brawl', 'firearms', 'throw', 'dodge', 'channel', 'ward', 'mysticLore',
+  'persuade', 'intimidate', 'empathy', 'perform', 'science', 'medicine',
+  'investigate', 'stealth', 'athletics', 'sleightOfHand'
+];
+
 const skillPointsSchema = z.object(
-  skillIds.reduce((acc, id) => {
+  SKILL_IDS.reduce((acc, id) => {
     acc[id] = z.number().min(0).describe(`${id} 技能上投入的点数`);
     return acc;
   }, {} as Record<string, z.ZodNumber>)
@@ -52,9 +53,9 @@ const skillPointsSchema = z.object(
 const powerSchema = z.object({
   id: z.number().describe('一个临时的唯一ID，用于React key，使用时间戳即可'),
   name: z.string().describe('这个能力的自定义名称'),
-  effectTagId: z.enum(effectTagIds as [string, ...string[]]).describe('能力的核心效果标签ID'),
+  effectTagId: z.string().describe('能力的核心效果标签ID (例如: damage, heal)'),
   rank: z.number().min(1).describe('如果效果可叠加，此为阶数，否则为1'),
-  modifierTagIds: z.array(z.enum(modifierTagIds as [string, ...string[]])).describe('附加的修正标签ID数组'),
+  modifierTagIds: z.array(z.string()).describe('附加的修正标签ID数组 (例如: range_long, elemental_fire)'),
 });
 
 // 最终完整的角色卡 Schema

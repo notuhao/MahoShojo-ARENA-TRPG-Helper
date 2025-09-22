@@ -18,7 +18,7 @@ import { EFFECT_TAGS, MODIFIER_TAGS } from '@/lib/trpg/powers';
 // 这是库所推荐的、用于自定义API Key和Base URL的方式。
 const openai = createOpenAI({
   apiKey: process.env.AI_API_KEY,
-  baseURL: process.env.AI_BASE_URL,
+  baseURL: process.env.AI_BASE_URL || 'https://api.openai.com/v1',
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
