@@ -11,27 +11,39 @@ import { Download } from 'lucide-react';
 /**
  * @fileoverview 角色卡可视化展示组件
  * @description
- * 负责将完整的角色卡数据（CharacterSheet）渲染成一个美观的、双页布局的卡片。
- * 同时，该组件内聚了使用 @zumer/snapdom 库进行截图导出的全部逻辑，
- * 遵循了参考项目 MahoShojo-Generator 中的成熟实践。
+ * 负责将完整的角色卡数据渲染成美观的卡片，并支持截图导出。
+ * [新增] 接收并展示属性、技能和能力的点数花费，并在超出默认上限时显示警告。
  */
+
+// 1. 更新 Props 接口，增加花费点数的属性
 interface CharacterSheetDisplayProps {
   characterSheet: CharacterSheet;
   onSaveImage: (imageUrl: string, width: number, height: number) => void;
+  spentAttributePoints: number;
+  spentSkillPoints: number;
+  spentPcpPoints: number;
 }
 
-const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ characterSheet, onSaveImage }) => {
+const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ 
+  characterSheet, 
+  onSaveImage,
+  spentAttributePoints,
+  spentSkillPoints,
+  spentPcpPoints
+}) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const { info, attributes, skills, powers } = characterSheet;
 
-  // --- 数据计算与格式化 ---
+  // 2. 定义规则书中的默认点数上限
+  const ATTR_LIMIT = 280;
+  const SKILL_LIMIT = 150;
+  const PCP_LIMIT = 20;
 
-  // 计算衍生值
+  // --- 数据计算与格式化 ---
   const hp = Math.ceil((attributes.CON + attributes.STR) / 10);
   const mp = Math.ceil(attributes.MAG / 5);
   const radiance = Math.ceil(attributes.WILL / 5);
 
-  // 计算伤害加值(DB)和体格(Build)
   const getDamageBonusAndBuild = (strPlusCon: number) => {
     if (strPlusCon <= 64) return { db: '-2', build: -2 };
     if (strPlusCon <= 84) return { db: '-1', build: -1 };
@@ -43,34 +55,27 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
   const { db, build } = getDamageBonusAndBuild(attributes.STR + attributes.CON);
 
   // --- 核心功能：导出为图片 ---
-
   const handleSaveImage = async () => {
     if (!cardRef.current) return;
 
     try {
-      // 截图前隐藏操作按钮，显示用于截图的Logo
       const buttonsContainer = cardRef.current.querySelector('.buttons-container') as HTMLElement;
       const logoPlaceholder = cardRef.current.querySelector('.logo-placeholder') as HTMLElement;
       if (buttonsContainer) buttonsContainer.style.display = 'none';
       if (logoPlaceholder) logoPlaceholder.style.display = 'flex';
 
-      // 执行截图
-      const result = await snapdom(cardRef.current, { scale: 1.5 }); // 提高分辨率
+      const result = await snapdom(cardRef.current, { scale: 1.5 });
 
-      // 截图后恢复UI
       if (buttonsContainer) buttonsContainer.style.display = 'flex';
       if (logoPlaceholder) logoPlaceholder.style.display = 'none';
 
       const imgElement = await result.toPng();
       const imageUrl = imgElement.src;
 
-      // 根据设备类型提供最佳保存体验
       const isMobileDevice = /Mobi/i.test(window.navigator.userAgent);
       if (isMobileDevice) {
-        // 移动端：调用父组件的回调，并传递尺寸
         onSaveImage(imageUrl, imgElement.naturalWidth, imgElement.naturalHeight);
       } else {
-        // 桌面端：直接触发文件下载
         const link = document.createElement('a');
         link.href = imageUrl;
         const fileName = info.codename || info.realName || '魔法少女';
@@ -82,7 +87,6 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
     } catch (err) {
       alert('生成图片失败，请重试');
       console.error("图片生成失败:", err);
-      // 确保出错时也恢复UI
       const buttonsContainer = cardRef.current?.querySelector('.buttons-container') as HTMLElement;
       const logoPlaceholder = cardRef.current?.querySelector('.logo-placeholder') as HTMLElement;
       if (buttonsContainer) buttonsContainer.style.display = 'flex';
@@ -94,7 +98,7 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
     <div ref={cardRef} className="bg-gray-100 p-4 rounded-lg font-sans">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 第一页：战斗与核心数据 */}
-        <div className="bg-white p-4 rounded shadow-sm border">
+        <div className="bg-white p-4 rounded shadow-sm border flex flex-col">
           <div className="text-center border-b pb-2 mb-2">
             <p className="text-lg font-bold">{info.codename || '[代号]'}</p>
             <p className="text-sm text-gray-500">{info.realName || '[真名]'}</p>
@@ -126,14 +130,26 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
             <div className="flex justify-between border-b py-1"><span className="font-semibold text-gray-600">体格</span><span>{build}</span></div>
           </div>
           
-          <div className="text-xs mt-2">
+          {/* 3. 新增：属性点花费显示 */}
+          <div className={`text-xs text-center mt-2 pt-1 border-t ${spentAttributePoints > ATTR_LIMIT ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+            属性点花费: {spentAttributePoints} / {ATTR_LIMIT} {spentAttributePoints > ATTR_LIMIT && ' (超额)'}
+          </div>
+
+          <div className="text-xs mt-2 flex-grow">
             <h4 className="font-bold mb-1 text-center">技能</h4>
-            {SKILLS.map(skill => (
-              <div key={skill.id} className="flex justify-between items-center border-b py-1">
-                <span>{skill.name}</span>
-                <span className="font-mono bg-gray-100 px-2 rounded">{skill.base(attributes) + (skills[skill.id] || 0)}%</span>
-              </div>
-            ))}
+            <div className="space-y-1">
+              {SKILLS.map(skill => (
+                <div key={skill.id} className="flex justify-between items-center border-b py-1">
+                  <span>{skill.name}</span>
+                  <span className="font-mono bg-gray-100 px-2 rounded">{skill.base(attributes) + (skills[skill.id] || 0)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. 新增：技能点花费显示 */}
+          <div className={`text-xs text-center mt-auto pt-2 border-t ${spentSkillPoints > SKILL_LIMIT ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+             技能点花费: {spentSkillPoints} / {SKILL_LIMIT} {spentSkillPoints > SKILL_LIMIT && ' (超额)'}
           </div>
         </div>
 
@@ -150,7 +166,7 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
           <div className="border-b pb-2 mb-2 flex-grow">
             <h4 className="font-bold text-sm">能力：魔装</h4>
             <div className="space-y-2 mt-1">
-              {powers.map(power => {
+              {powers.length > 0 ? powers.map(power => {
                 const effect = EFFECT_TAGS.find(e => e.id === power.effectTagId);
                 const modifiers = MODIFIER_TAGS.filter(m => power.modifierTagIds.includes(m.id));
                 return (
@@ -160,8 +176,12 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
                     {modifiers.length > 0 && <p className="text-gray-600 pl-2">修正: {modifiers.map(m => m.name).join(', ')}</p>}
                   </div>
                 )
-              })}
+              }) : <p className="text-xs text-gray-400 italic text-center py-2">暂未设计能力</p>}
             </div>
+          </div>
+           {/* 5. 新增：PCP花费显示 */}
+           <div className={`text-xs text-center mt-auto pt-2 border-t ${spentPcpPoints > PCP_LIMIT ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+             PCP 花费: {spentPcpPoints} / {PCP_LIMIT} {spentPcpPoints > PCP_LIMIT && ' (超额)'}
           </div>
           <div className="text-xs text-gray-500 mt-2">
             <h4 className="font-bold text-sm text-gray-800">背景故事</h4>
@@ -170,7 +190,6 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
         </div>
       </div>
       
-      {/* 操作按钮，仅在UI中显示，截图时隐藏 */}
       <div className="buttons-container mt-4 flex justify-center">
         <button onClick={handleSaveImage} className="generate-button !w-auto px-6">
           <Download className="inline-block mr-2" size={18}/>
@@ -178,7 +197,6 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
         </button>
       </div>
       
-      {/* Logo占位符，仅在截图时显示 */}
       <div className="logo-placeholder" style={{ display: 'none', justifyContent: 'center', marginTop: '1rem' }}>
         <Image
             src="/logo-white-qrcode.svg"

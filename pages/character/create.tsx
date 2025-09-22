@@ -226,6 +226,9 @@ const CharacterCreatorPage: React.FC = () => {
               <CharacterSheetDisplay 
                 characterSheet={character} 
                 onSaveImage={handleSaveImageCallback}
+                spentAttributePoints={spentAttributePoints}
+                spentSkillPoints={spentSkillPoints}
+                spentPcpPoints={spentPcpPoints}
               />
             </section>
 
