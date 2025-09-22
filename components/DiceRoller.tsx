@@ -7,6 +7,7 @@ import { Dices, Award, ShieldAlert } from 'lucide-react';
  * @fileoverview 魔法少女竞技场TRPG在线骰子组件
  * @description
  * 实现了TRPG所需的核心投骰功能，并深度整合了《魔法少女竞技场》的d100判定规则。
+ * - [V1.1] 新增：支持一次性投掷多个骰子并计算总和。
  * - 支持多种常用骰子 (d100, d20, d12, d10, d8, d6, d4)。
  * - 针对d100系统，实现了奖励骰与惩罚骰机制。
  * - 能够根据用户输入的成功率，自动判定d100投掷结果的成功等级（大成功、极限成功等）。
@@ -20,8 +21,9 @@ type SuccessLevel = '大成功' | '极限成功' | '困难成功' | '成功' | '
 interface RollHistoryEntry {
   id: number;
   diceType: DiceType;
-  result: number;
-  breakdown: string; // 用于记录d100的构成，如 "70 (十位) + 5 (个位)"
+  numberOfDice: number; // 新增：记录投掷的骰子数量
+  result: number; // 对于多骰，这里是总和
+  breakdown: string; // 记录d100构成或多骰的各次结果
   successLevel: SuccessLevel;
   targetValue: number | null;
   isBonus: boolean;
@@ -32,6 +34,7 @@ interface RollHistoryEntry {
 const DiceRoller: React.FC = () => {
   // --- 状态管理 ---
   const [diceType, setDiceType] = useState<DiceType>('d100');
+  const [numberOfDice, setNumberOfDice] = useState<number>(1); // 骰子数量状态
   const [targetValue, setTargetValue] = useState<number>(50); // 目标成功率
   const [isBonus, setIsBonus] = useState(false); // 是否为奖励骰
   const [isPenalty, setIsPenalty] = useState(false); // 是否为惩罚骰
@@ -40,9 +43,6 @@ const DiceRoller: React.FC = () => {
 
   /**
    * 计算d100投掷结果的成功等级
-   * @param roll - 投掷的点数 (1-100)
-   * @param target - 目标成功率
-   * @returns {SuccessLevel} 成功等级的字符串
    */
   const calculateSuccessLevel = (roll: number, target: number): SuccessLevel => {
     if (roll === 1) return '大成功';
@@ -60,42 +60,49 @@ const DiceRoller: React.FC = () => {
     let result: number;
     let breakdown = '';
     let successLevel: SuccessLevel = '—';
+    
+    // d100 逻辑保持独立，不支持复数投掷
+    if (diceType === 'd100') {
+      const unitsDie = Math.floor(Math.random() * 10);
+      let tensDie1 = Math.floor(Math.random() * 10);
+      let finalTensDie = tensDie1;
 
-    // 根据骰子类型执行不同的投掷逻辑
-    switch (diceType) {
-      case 'd100':
-        const unitsDie = Math.floor(Math.random() * 10);
-        let tensDie1 = Math.floor(Math.random() * 10);
-        let finalTensDie = tensDie1;
-
-        if (isBonus || isPenalty) {
-          const tensDie2 = Math.floor(Math.random() * 10);
-          if (isBonus) { // 奖励骰：取较小的十位数
-            finalTensDie = Math.min(tensDie1, tensDie2);
-            breakdown = `十位[${tensDie1*10}, ${tensDie2*10}]→${finalTensDie*10} + 个位[${unitsDie}]`;
-          } else { // 惩罚骰：取较大的十位数
-            finalTensDie = Math.max(tensDie1, tensDie2);
-            breakdown = `十位[${tensDie1*10}, ${tensDie2*10}]→${finalTensDie*10} + 个位[${unitsDie}]`;
-          }
+      if (isBonus || isPenalty) {
+        const tensDie2 = Math.floor(Math.random() * 10);
+        if (isBonus) {
+          finalTensDie = Math.min(tensDie1, tensDie2);
+          breakdown = `十位[${tensDie1*10}, ${tensDie2*10}]→${finalTensDie*10} + 个位[${unitsDie}]`;
         } else {
-          breakdown = `十位[${finalTensDie*10}] + 个位[${unitsDie}]`;
+          finalTensDie = Math.max(tensDie1, tensDie2);
+          breakdown = `十位[${tensDie1*10}, ${tensDie2*10}]→${finalTensDie*10} + 个位[${unitsDie}]`;
         }
-        
-        result = (finalTensDie * 10) + unitsDie;
-        if (result === 0) result = 100; // 规则：00等于100
-        
-        successLevel = calculateSuccessLevel(result, targetValue);
-        break;
+      } else {
+        breakdown = `十位[${finalTensDie*10}] + 个位[${unitsDie}]`;
+      }
+      
+      result = (finalTensDie * 10) + unitsDie;
+      if (result === 0) result = 100;
+      
+      successLevel = calculateSuccessLevel(result, targetValue);
 
-      default:
-        const max = parseInt(diceType.slice(1), 10);
-        result = Math.floor(Math.random() * max) + 1;
-        breakdown = `掷骰 D${max}`;
+    } else {
+      // 其他骰子的多骰逻辑
+      const max = parseInt(diceType.slice(1), 10);
+      const rolls: number[] = [];
+      let sum = 0;
+      for (let i = 0; i < numberOfDice; i++) {
+        const roll = Math.floor(Math.random() * max) + 1;
+        rolls.push(roll);
+        sum += roll;
+      }
+      result = sum;
+      breakdown = numberOfDice > 1 ? `[${rolls.join(', ')}]` : `掷骰 D${max}`;
     }
 
     const newRoll: RollHistoryEntry = {
       id: Date.now(),
       diceType,
+      numberOfDice: diceType === 'd100' ? 1 : numberOfDice,
       result,
       breakdown,
       successLevel,
@@ -105,15 +112,17 @@ const DiceRoller: React.FC = () => {
     };
 
     setLastRoll(newRoll);
-    setHistory(prev => [newRoll, ...prev.slice(0, 9)]); // 保留最近10条记录
+    setHistory(prev => [newRoll, ...prev.slice(0, 9)]);
 
-  }, [diceType, targetValue, isBonus, isPenalty]);
+  }, [diceType, numberOfDice, targetValue, isBonus, isPenalty]);
 
-  // 当骰子类型改变时，重置奖励/惩罚状态
+  // 当骰子类型改变时，重置奖励/惩罚状态和骰子数量
   useEffect(() => {
     if (diceType !== 'd100') {
       setIsBonus(false);
       setIsPenalty(false);
+    } else {
+      setNumberOfDice(1); // 切换回d100时，强制数量为1
     }
   }, [diceType]);
   
@@ -122,22 +131,36 @@ const DiceRoller: React.FC = () => {
       <div className="grid md:grid-cols-2 gap-6">
         {/* --- 控制面板 --- */}
         <div className="space-y-4">
-          <div>
-            <label htmlFor="dice-type-select" className="input-label">选择骰子</label>
-            <select
-              id="dice-type-select"
-              value={diceType}
-              onChange={(e) => setDiceType(e.target.value as DiceType)}
-              className="input-field"
-            >
-              <option value="d100">d100 (核心判定)</option>
-              <option value="d20">d20</option>
-              <option value="d12">d12</option>
-              <option value="d10">d10</option>
-              <option value="d8">d8</option>
-              <option value="d6">d6</option>
-              <option value="d4">d4</option>
-            </select>
+          <div className="flex items-end gap-2">
+              <div className="flex-grow">
+                <label htmlFor="dice-type-select" className="input-label">选择骰子</label>
+                <select
+                  id="dice-type-select"
+                  value={diceType}
+                  onChange={(e) => setDiceType(e.target.value as DiceType)}
+                  className="input-field"
+                >
+                  <option value="d100">d100 (核心判定)</option>
+                  <option value="d20">d20</option>
+                  <option value="d12">d12</option>
+                  <option value="d10">d10</option>
+                  <option value="d8">d8</option>
+                  <option value="d6">d6</option>
+                  <option value="d4">d4</option>
+                </select>
+              </div>
+              <div className="flex-shrink-0">
+                <label htmlFor="number-of-dice" className="input-label">数量</label>
+                <input
+                  id="number-of-dice"
+                  type="number"
+                  value={numberOfDice}
+                  onChange={(e) => setNumberOfDice(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="input-field w-20 text-center"
+                  min="1"
+                  disabled={diceType === 'd100'} // d100时禁用
+                />
+              </div>
           </div>
           
           {diceType === 'd100' && (
@@ -155,7 +178,6 @@ const DiceRoller: React.FC = () => {
                 />
               </div>
               <div className="flex space-x-4">
-                {/* 修正 #1：为label添加htmlFor，为input添加id */}
                 <label htmlFor="bonus-checkbox" className="flex items-center space-x-2 cursor-pointer">
                   <input id="bonus-checkbox" type="checkbox" checked={isBonus} onChange={() => { setIsBonus(!isBonus); setIsPenalty(false); }} className="h-4 w-4 rounded" />
                   <span>奖励骰</span>
@@ -182,6 +204,7 @@ const DiceRoller: React.FC = () => {
           <div className="bg-gray-100 rounded-lg p-4 text-center h-48 flex flex-col justify-center items-center">
             {lastRoll ? (
               <>
+                {lastRoll.numberOfDice > 1 && <div className="text-sm text-gray-500">总和</div>}
                 <div className="text-6xl font-bold text-purple-700">{lastRoll.result}</div>
                 {lastRoll.diceType === 'd100' && (
                     <div className={`mt-2 px-3 py-1 text-lg font-semibold rounded-full text-white ${
@@ -209,8 +232,10 @@ const DiceRoller: React.FC = () => {
                   <div>
                     {roll.isBonus && <Award size={12} className="inline mr-1 text-yellow-500" />}
                     {roll.isPenalty && <ShieldAlert size={12} className="inline mr-1 text-red-500" />}
-                    {roll.diceType.toUpperCase()}: <span className="font-bold">{roll.result}</span>
+                    {roll.numberOfDice > 1 ? `${roll.numberOfDice}${roll.diceType.toUpperCase()}` : roll.diceType.toUpperCase()}
+                    : <span className="font-bold">{roll.result}</span>
                     {roll.targetValue !== null && ` vs ${roll.targetValue}%`}
+                    {roll.numberOfDice > 1 && <span className="text-gray-500 ml-2">{roll.breakdown}</span>}
                   </div>
                   <span className="font-semibold">{roll.successLevel}</span>
                 </li>
