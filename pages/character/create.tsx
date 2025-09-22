@@ -40,7 +40,7 @@ export interface Power {
   modifierTagIds: string[];
 }
 
-// [新增] 角色叙事信息类型
+// 角色叙事信息类型
 export interface CharacterInfo {
   realName: string;
   codename: string;
@@ -49,7 +49,7 @@ export interface CharacterInfo {
   background: string;
 }
 
-// [新增] 最终的角色卡数据结构
+// 最终的角色卡数据结构
 export interface CharacterSheet {
   info: CharacterInfo;
   attributes: CharacterAttributes;
@@ -73,7 +73,7 @@ const initialInfo: CharacterInfo = {
   realName: '', codename: '', belief: '', bonds: '', background: '',
 };
 
-// 【新增】定义一个完整的、空的初始角色卡模板，用于优雅地合并导入数据
+// 定义一个完整的、空的初始角色卡模板，用于优雅地合并导入数据
 const initialCharacterSheet: CharacterSheet = {
     info: initialInfo,
     attributes: initialAttributes,
@@ -139,17 +139,19 @@ const CharacterCreatorPage: React.FC = () => {
     }
   }, []);
 
-  // 【新增】处理JSON导入的核心逻辑
+  // 【核心功能修复】增强的JSON导入逻辑
   const processAndLoadJson = (jsonString: string) => {
     try {
       const importedData = JSON.parse(jsonString);
+      
+      // 兼容两种JSON结构：一种是纯角色卡，另一种是包含元数据的导出文件
       const dataToParse = importedData.characterSheet ? importedData.characterSheet : importedData;
       
       const newCharacterSheet: CharacterSheet = {
-        info: { ...initialCharacterSheet.info, ...(importedData.info || {}) },
-        attributes: { ...initialCharacterSheet.attributes, ...(importedData.attributes || {}) },
-        skills: { ...initialCharacterSheet.skills, ...(importedData.skills || {}) },
-        powers: (importedData.powers || []).map((p: any) => ({
+        info: { ...initialCharacterSheet.info, ...(dataToParse.info || {}) },
+        attributes: { ...initialCharacterSheet.attributes, ...(dataToParse.attributes || {}) },
+        skills: { ...initialCharacterSheet.skills, ...(dataToParse.skills || {}) },
+        powers: (dataToParse.powers || []).map((p: any) => ({
           ...p,
           id: Date.now() + Math.random(), // 重新生成唯一的临时ID
         })),
@@ -157,11 +159,12 @@ const CharacterCreatorPage: React.FC = () => {
       
       setCharacter(newCharacterSheet);
 
-      if (importedData.customSkills) setCustomSkills(importedData.customSkills);
-      if (importedData.customPowerTags) {
-          setCustomEffectTags(importedData.customPowerTags.filter((t: any) => t.type === 'effect'));
-          setCustomModifierTags(importedData.customPowerTags.filter((t: any) => t.type === 'modifier'));
-      }
+      // 【关键修复】从导入数据中正确加载自定义技能和能力标签
+      setCustomSkills(importedData.customSkills || []);
+      const customPowerTags = importedData.customPowerTags || [];
+      // 根据 'type' 字段将标签分类回两个不同的状态
+      setCustomEffectTags(customPowerTags.filter((t: any) => t.type === 'effect'));
+      setCustomModifierTags(customPowerTags.filter((t: any) => t.type === 'modifier'));
       
       setMessage({ type: 'success', text: '角色数据加载成功！' });
       // 滚动到第一个编辑面板，方便用户查看
@@ -346,13 +349,24 @@ const CharacterCreatorPage: React.FC = () => {
                 spentAttributePoints={spentAttributePoints}
                 spentSkillPoints={spentSkillPoints}
                 spentPcpPoints={spentPcpPoints}
+                customSkills={customSkills}
+                customEffectTags={customEffectTags}
+                customModifierTags={customModifierTags}
               />
             </section>
 
             {/* 步骤六：导出 */}
             <section id="step-6-export">
               <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 6: 导出JSON</h2>
-              <ExportPanel characterSheet={character} />
+              <ExportPanel 
+                characterSheet={character}
+                customSkills={customSkills}
+                customEffectTags={customEffectTags}
+                customModifierTags={customModifierTags}
+                spentAttributePoints={spentAttributePoints}
+                spentSkillPoints={spentSkillPoints}
+                spentPcpPoints={spentPcpPoints}
+              />
             </section>
 
           </div>
@@ -372,8 +386,19 @@ const CharacterCreatorPage: React.FC = () => {
             role="button"
             tabIndex={0}
             className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowImageModal(false)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowImageModal(false); }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowImageModal(false);
+              }
+            }}
+            onKeyDown={(e) => { 
+              if (e.key === 'Escape') {
+                setShowImageModal(false);
+              }
+              if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                setShowImageModal(false);
+              }
+            }}
           >
             {/* 豁免内容区域的 a11y 规则：这里的 onClick 用于阻止事件冒泡，是必要的交互逻辑 */}
             {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events */}

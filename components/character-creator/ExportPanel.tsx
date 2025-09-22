@@ -2,25 +2,75 @@
 
 import React from 'react';
 import { CharacterSheet } from '../../pages/character/create';
+import { CustomSkill } from './SkillAllocatorPanel';
+import { EffectTag, ModifierTag } from '@/lib/trpg/powers';
 import { Download, Copy } from 'lucide-react';
+
+/**
+ * @fileoverview 导出功能面板 (V2.2)
+ * @description
+ * - [核心修复] 在导出 customPowerTags 时，为每个标签添加 `type` 字段 ('effect' 或 'modifier')，以防止导入时信息丢失。
+ * - 导出的JSON现在包含一个 `pointSummary` 对象，记录了所有点数的消耗情况。
+ * - 导出的JSON现在包含 `customSkills` 和 `customPowerTags` 数组，用于保存用户创建的自定义内容。
+ */
 
 interface ExportPanelProps {
   characterSheet: CharacterSheet;
+  customSkills: CustomSkill[];
+  customEffectTags: EffectTag[];
+  customModifierTags: ModifierTag[];
+  spentAttributePoints: number;
+  spentSkillPoints: number;
+  spentPcpPoints: number;
 }
 
 /**
  * 导出功能面板
  * @description 提供将最终角色卡导出为JSON文件的功能。
  */
-const ExportPanel: React.FC<ExportPanelProps> = ({ characterSheet }) => {
+const ExportPanel: React.FC<ExportPanelProps> = ({
+  characterSheet,
+  customSkills,
+  customEffectTags,
+  customModifierTags,
+  spentAttributePoints,
+  spentSkillPoints,
+  spentPcpPoints
+}) => {
+  const buildExportData = () => {
+    const ATTR_LIMIT = 280;
+    const SKILL_LIMIT = 150;
+    const PCP_LIMIT = 20;
+
+    // 【关键修复】合并自定义标签时，为每个对象添加 'type' 属性
+    const customPowerTags = [
+      ...customEffectTags.map(tag => ({ ...tag, type: 'effect' as const })),
+      ...customModifierTags.map(tag => ({ ...tag, type: 'modifier' as const }))
+    ];
+
+    return {
+      characterSheet: {
+        ...characterSheet,
+        powers: characterSheet.powers.map(({ id, ...rest }) => rest)
+      },
+      customSkills,
+      customPowerTags, // 现在这里包含了带有类型的标签
+      pointSummary: {
+        spentAttributePoints,
+        attributePointsLimit: ATTR_LIMIT,
+        isAttributePointsOverLimit: spentAttributePoints > ATTR_LIMIT,
+        spentSkillPoints,
+        skillPointsLimit: SKILL_LIMIT,
+        isSkillPointsOverLimit: spentSkillPoints > SKILL_LIMIT,
+        spentPcpPoints,
+        pcpLimit: PCP_LIMIT,
+        isPcpOverLimit: spentPcpPoints > PCP_LIMIT,
+      }
+    };
+  };
 
   const handleDownloadJson = () => {
-    // 移除powers数组中临时的id字段，因为它只用于React key
-    const exportData = {
-      ...characterSheet,
-      powers: characterSheet.powers.map(({ id, ...rest }) => rest)
-    };
-    
+    const exportData = buildExportData();
     const jsonData = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -35,10 +85,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({ characterSheet }) => {
   };
 
   const handleCopyToClipboard = () => {
-    const exportData = {
-      ...characterSheet,
-      powers: characterSheet.powers.map(({ id, ...rest }) => rest)
-    };
+    const exportData = buildExportData();
     const jsonData = JSON.stringify(exportData, null, 2);
     navigator.clipboard.writeText(jsonData).then(() => {
       alert('角色数据已复制到剪贴板！');

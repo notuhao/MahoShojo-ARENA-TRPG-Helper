@@ -1,27 +1,33 @@
 // components/character-creator/CharacterSheetDisplay.tsx
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { snapdom } from '@zumer/snapdom';
 import { CharacterSheet } from '../../pages/character/create';
 import { SKILLS } from '@/lib/trpg/skills';
-import { EFFECT_TAGS, MODIFIER_TAGS } from '@/lib/trpg/powers';
+import { EFFECT_TAGS, MODIFIER_TAGS, EffectTag, ModifierTag } from '@/lib/trpg/powers';
+import { CustomSkill } from './SkillAllocatorPanel';
 import { Download } from 'lucide-react';
 
 /**
  * @fileoverview 角色卡可视化展示组件
  * @description
- * 负责将完整的角色卡数据渲染成美观的卡片，并支持截图导出。
- * [新增] 接收并展示属性、技能和能力的点数花费，并在超出默认上限时显示警告。
+ * - [核心修复] 新增接收自定义技能和能力标签的props，并将其正确渲染在角色卡上。
+ * - 负责将完整的角色卡数据渲染成美观的卡片，并支持截图导出。
+ * - 接收并展示属性、技能和能力的点数花费，并在超出默认上限时显示警告。
  */
 
-// 1. 更新 Props 接口，增加花费点数的属性
+// 1. 更新 Props 接口，增加自定义内容和花费点数的属性
 interface CharacterSheetDisplayProps {
   characterSheet: CharacterSheet;
   onSaveImage: (imageUrl: string, width: number, height: number) => void;
   spentAttributePoints: number;
   spentSkillPoints: number;
   spentPcpPoints: number;
+  // 【新增】接收自定义内容
+  customSkills: CustomSkill[];
+  customEffectTags: EffectTag[];
+  customModifierTags: ModifierTag[];
 }
 
 const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ 
@@ -29,7 +35,11 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
   onSaveImage,
   spentAttributePoints,
   spentSkillPoints,
-  spentPcpPoints
+  spentPcpPoints,
+  // 【新增】解构自定义内容的props
+  customSkills,
+  customEffectTags,
+  customModifierTags
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const { info, attributes, skills, powers } = characterSheet;
@@ -38,6 +48,10 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
   const ATTR_LIMIT = 280;
   const SKILL_LIMIT = 150;
   const PCP_LIMIT = 20;
+
+  // 【核心修复】使用 useMemo 合并预设与自定义标签，以供后续查找
+  const allEffectTags = useMemo(() => [...EFFECT_TAGS, ...customEffectTags], [customEffectTags]);
+  const allModifierTags = useMemo(() => [...MODIFIER_TAGS, ...customModifierTags], [customModifierTags]);
 
   // --- 数据计算与格式化 ---
   const hp = Math.ceil((attributes.CON + attributes.STR) / 10);
@@ -144,6 +158,13 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
                   <span className="font-mono bg-gray-100 px-2 rounded">{skill.base(attributes) + (skills[skill.id] || 0)}%</span>
                 </div>
               ))}
+              {/* 【核心修复】渲染自定义技能 */}
+              {customSkills.map(skill => (
+                <div key={skill.id} className="flex justify-between items-center border-b py-1 bg-purple-50">
+                  <span className="italic">{skill.name}*</span>
+                  <span className="font-mono bg-purple-100 px-2 rounded">{skill.base + skill.points}%</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -167,13 +188,23 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
             <h4 className="font-bold text-sm">能力：魔装</h4>
             <div className="space-y-2 mt-1">
               {powers.length > 0 ? powers.map(power => {
-                const effect = EFFECT_TAGS.find(e => e.id === power.effectTagId);
-                const modifiers = MODIFIER_TAGS.filter(m => power.modifierTagIds.includes(m.id));
+                const effect = allEffectTags.find(e => e.id === power.effectTagId);
+                const modifiers = allModifierTags.filter(m => power.modifierTagIds.includes(m.id));
+                const isCustomEffect = customEffectTags.some(t => t.id === power.effectTagId);
                 return (
                   <div key={power.id} className="text-xs">
                     <p className="font-semibold text-purple-700">{power.name || '[未命名能力]'}</p>
-                    <p className="text-gray-600 pl-2">效果: {effect?.name} {effect?.isScalable ? `(x${power.rank})` : ''}</p>
-                    {modifiers.length > 0 && <p className="text-gray-600 pl-2">修正: {modifiers.map(m => m.name).join(', ')}</p>}
+                    <p className={`text-gray-600 pl-2 ${isCustomEffect ? 'italic' : ''}`}>
+                      效果: {effect?.name || '[未知效果]'}{isCustomEffect ? '*' : ''} {effect?.isScalable ? `(x${power.rank})` : ''}
+                    </p>
+                    {modifiers.length > 0 && (
+                      <p className="text-gray-600 pl-2">
+                        修正: {modifiers.map(m => {
+                          const isCustomMod = customModifierTags.some(t => t.id === m.id);
+                          return `${m.name}${isCustomMod ? '*' : ''}`;
+                        }).join(', ')}
+                      </p>
+                    )}
                   </div>
                 )
               }) : <p className="text-xs text-gray-400 italic text-center py-2">暂未设计能力</p>}
