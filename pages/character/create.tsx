@@ -28,7 +28,15 @@ import { X, Upload, ClipboardPaste } from 'lucide-react';
 
 // 力量层级，键名必须与 leveling.json 中的键一致
 export type PowerLevel = keyof typeof levelingData.levels;
-// 核心属性
+
+// 【修正】状态效果的结构化类型定义
+export interface StatusEffect {
+  id: number;
+  name: string;
+  mechanism: string;
+  duration: string;
+}
+
 export interface CharacterAttributes { STR: number; CON: number; AGI: number; MAG: number; WILL: number; PER: number; CHM: number; }
 // 技能点记录，键为技能ID，值为投入点数
 export type SkillPoints = Record<string, number>;
@@ -65,7 +73,7 @@ export interface CharacterSheet {
   blooming: Blooming;
   gemScepter: GemScepter;
   bonds: Bond[];
-  statusEffects: string[];
+  statusEffects: StatusEffect[]; // 确保类型为 StatusEffect[]
   negativeTraits: string;
 }
 
@@ -185,7 +193,7 @@ const CharacterCreatorPage: React.FC = () => {
   const handleVitalsChange = useCallback((field: 'hp' | 'mp' | 'radiance', newStat: DynamicStat) => setCharacter(prev => ({ ...prev, [field]: newStat })), []);
   const handleShadowPointsChange = useCallback((points: number) => setCharacter(prev => ({ ...prev, shadowPoints: points })), []);
   const handleBondsChange = useCallback((newBonds: Bond[]) => setCharacter(prev => ({ ...prev, bonds: newBonds })), []);
-  // 处理幕间休息的回调函数
+  const handleNarrativeUpdate = useCallback((field: string, value: any) => setCharacter(prev => ({ ...prev, [field]: value })), []);
   const handleIntermission = useCallback(() => {
     setCharacter(prev => {
       // 计算所有羁绊的光辉影响总和
@@ -207,9 +215,7 @@ const CharacterCreatorPage: React.FC = () => {
     });
   }, []);
 
-  const handleNarrativeUpdate = useCallback((field: string, value: any) => setCharacter(prev => ({ ...prev, [field]: value })), []);
-
-  const handleStatusEffectsChange = useCallback((effects: string[]) => setCharacter(prev => ({ ...prev, statusEffects: effects })), []);
+  const handleStatusEffectsChange = useCallback((effects: StatusEffect[]) => setCharacter(prev => ({ ...prev, statusEffects: effects })), []);
   const handleNegativeTraitsChange = useCallback((traits: string) => setCharacter(prev => ({ ...prev, negativeTraits: traits })), []);
 
   const handleCharacterGenerated = useCallback((data: AIGeneratedCharacterData) => {
@@ -227,14 +233,12 @@ const CharacterCreatorPage: React.FC = () => {
         return ''; // 如果AI返回了无效的阵营，则重置为空字符串
     };
 
-    // 1. 先安全地合并 info 对象，并处理 faction 的类型
     const mergedInfo: CharacterInfo = {
         ...baseSheet.info,
         ...(aiSheet.info || {}),
         faction: validateFaction(aiSheet.info?.faction),
     };
 
-    // 2. 构建最终的、类型安全的角色卡对象
     const mergedSheet: CharacterSheet = {
       ...baseSheet,
       ...aiSheet,
@@ -247,6 +251,7 @@ const CharacterCreatorPage: React.FC = () => {
       gemScepter: { ...baseSheet.gemScepter, ...(aiSheet.gemScepter || {}) },
       powers: aiSheet.powers || baseSheet.powers,
       bonds: aiSheet.bonds || baseSheet.bonds,
+      statusEffects: [], 
     };
 
     setCharacter(mergedSheet);
@@ -470,7 +475,7 @@ const CharacterCreatorPage: React.FC = () => {
               >
                 <X size={24} />
               </button>
-              <p className="text-center text-sm text-gray-600 mb-2">
+              <p id="image-modal-title" className="text-center text-sm text-gray-600 mb-2">
                 📱 移动端请长按图片保存到相册
               </p>
               {/* 使用 Next/Image 组件 */}

@@ -3,7 +3,7 @@
 import React, { useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { snapdom } from '@zumer/snapdom';
-import { CharacterSheet, PowerLevel } from '../../pages/character/create';
+import { CharacterSheet, PowerLevel, StatusEffect } from '../../pages/character/create'; // 导入 StatusEffect
 import { SKILLS } from '@/lib/trpg/skills';
 import { EFFECT_TAGS, MODIFIER_TAGS, EffectTag, ModifierTag } from '@/lib/trpg/powers';
 import { CustomSkill } from './SkillAllocatorPanel';
@@ -13,8 +13,8 @@ import levelingData from '../../lib/trpg/data/leveling.json';
 /**
  * @fileoverview 角色卡可视化展示组件
  * @description
- * - [布局优化] 将核心数值（HP/MP等）的布局从 4 列调整为 2x2 的 2 列网格，使其更加清晰美观。
- * - [样式优化] 优化了第二页叙事模块的视觉分隔，使其更易读。
+ * - [布局修复] 修正了状态与特质模块的布局问题，将其整合到第一栏中，确保整体布局均衡。
+ * - [功能更新] 更新了状态效果的显示逻辑，以支持并展示新的结构化数据（名称、机制、持续时间）。
  */
 
 interface CharacterSheetDisplayProps {
@@ -47,7 +47,6 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
   const levelConfig = levelingData.levels[powerLevel];
   const unlocks: string[] = levelConfig.unlocks;
 
-  // 【核心修复】使用 useMemo 合并预设与自定义标签，以供后续查找
   const allEffectTags = useMemo(() => [...EFFECT_TAGS, ...customEffectTags], [customEffectTags]);
   const allModifierTags = useMemo(() => [...MODIFIER_TAGS, ...customModifierTags], [customModifierTags]);
 
@@ -96,15 +95,7 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
       console.error("图片生成失败:", err);
     }
   };
-
-  /**
-   * [FIXED] 渲染单个叙事模块的辅助函数
-   * @param moduleKey - 用于在unlocks数组中检查的模块ID
-   * @param title - 模块标题
-   * @param content - 要渲染的React节点
-   * @param dataObject - 与模块相关的数据对象，用于检查是否有内容
-   * @returns 
-   */
+  
   const renderNarrativeModule = (
     moduleKey: string,
     title: string,
@@ -183,21 +174,29 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
           <div className={`text-xs text-center mt-auto pt-1 border-t ${spentSkillPoints > levelConfig.skillPoints ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
             技能点: {spentSkillPoints}/{levelConfig.skillPoints}
           </div>
-        </div>
 
-        <div className="text-xs mt-2 pt-2 border-t">
-          {characterSheet.statusEffects.length > 0 && (
-            <div className="mb-1">
-              <span className="font-bold">状态: </span>
-              <span>{characterSheet.statusEffects.join(', ')}</span>
-            </div>
-          )}
-          {characterSheet.negativeTraits && (
+          {/* 【布局修正】将状态和特质移到第一栏底部 */}
+          <div className="text-xs mt-4 pt-2 border-t space-y-2">
             <div>
-              <span className="font-bold">负面特质: </span>
-              <span>{characterSheet.negativeTraits}</span>
+              <h4 className="font-bold mb-1">状态效果</h4>
+              {characterSheet.statusEffects.length > 0 ? (
+                <div className="space-y-1">
+                  {/* 【修正】现在迭代的是StatusEffect对象数组，可以安全访问其属性 */}
+                  {characterSheet.statusEffects.map(effect => (
+                    <div key={effect.id} className="text-gray-700">
+                      <span className="font-semibold">{effect.name}</span> ({effect.duration}): {effect.mechanism}
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-gray-500 italic">无</p>}
             </div>
-          )}
+            <div>
+              <h4 className="font-bold mb-1">负面特质</h4>
+              <p className={`text-gray-700 ${!characterSheet.negativeTraits ? 'italic text-gray-500' : ''}`}>
+                {characterSheet.negativeTraits || '无'}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* ==================== 第二页：内心与故事 ==================== */}
@@ -259,7 +258,6 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
               )) : <p className="text-xs text-gray-400 italic">暂无羁绊</p>}
             </div>
           </div>
-
         </div>
       </div>
       
