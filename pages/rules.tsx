@@ -12,11 +12,10 @@ import Footer from '../components/Footer';
 import { Menu, X, ChevronsRight, ChevronsLeft } from 'lucide-react';
 
 /**
- * @fileoverview 魔法少女竞技场TRPG核心规则书页面 (v0.1.2 UI/UX 重构版)。
+ * @fileoverview 魔法少女竞技场TRPG核心规则书页面 (v0.1.3 修正版)。
  * @description 
- * - [UI/UX重构] 桌面端侧边栏目录改为固定定位（position: fixed），并拥有独立的滚动条，解决了目录随正文滚动的问题。
- * - [UI/UX重构] 将侧边栏及其开关按钮作为一个整体移至屏幕最左侧，解决了按钮与目录位置不协调的问题。
- * - [UI/UX重构] 主内容区会根据目录的展开状态动态调整左边距，以防止内容被遮挡。
+ * - [核心修正] 修复了 generateHeadingId 函数的逻辑错误。旧函数会移除中文字符，导致纯中文标题的锚点链接失效。
+ * - 新函数采用 encodeURIComponent，可以为任何文本（包括中文和特殊符号）生成一个稳定、有效的URL锚点ID。
  */
 
 // --- 类型定义 ---
@@ -34,10 +33,12 @@ interface RulebookPageProps {
 
 // --- 辅助函数：为标题生成ID ---
 const generateHeadingId = (text: string) => {
-    return text.toLowerCase()
-      .replace(/[^\w\s-]/g, '') // 移除非字母、数字、空格和连字符的字符
-      .trim()
-      .replace(/\s+/g, '-'); // 将空格替换为连字符
+    /**
+     * 【核心修正】
+     * 使用 encodeURIComponent 来确保任何文本（包括中文）都能生成一个有效的、唯一的URL片段标识符。
+     * 这是最稳健的处理方式，可以避免手动处理各种特殊字符和语言的复杂性。
+     */
+    return encodeURIComponent(text);
 }
 
 // --- 侧边栏导航组件 ---
