@@ -14,6 +14,7 @@ interface FeatureConfig {
   href: string;
   className: string;
   iconSrc: string;
+  isExternal?: boolean; // 【新增】用于标记外部链接的字段
 }
 
 // 功能列表配置
@@ -21,7 +22,7 @@ const featureConfigs: FeatureConfig[] = [
   {
     id: 'character-creator',
     title: '交互式角色创建器',
-    description: '引导式创建、自动计算、构筑独一-无二的魔法少女。',
+    description: '引导式创建、自动计算、构筑独一无二的魔法少女。',
     href: '/character/create',
     className: 'creator-card',
     iconSrc: '/mahou-title.svg',
@@ -40,9 +41,18 @@ const featureConfigs: FeatureConfig[] = [
     description: '内置d100判定和奖惩骰规则的便捷投骰器。',
     href: '/dice',
     className: 'dice-roller-card',
-    iconSrc: '/file.svg', // 暂时使用一个通用图标
+    iconSrc: '/file.svg', 
   },
-  // 可以在这里继续添加其他功能入口
+  // 【指向魔法少女生成器的外部链接入口
+  {
+    id: 'mahoshojo-generator',
+    title: '前往魔法少女生成器',
+    description: '源项目，快速生成包含背景、故事和立绘的角色。',
+    href: 'https://mahoshojo.colanns.me',
+    className: 'generator-link-card',
+    iconSrc: '/logo.svg', // 使用生成器的Logo作为图标
+    isExternal: true,
+  },
 ];
 
 export default function Home() {
@@ -69,7 +79,6 @@ export default function Home() {
         setImagesLoaded(true); // 即使部分失败也继续渲染
       }
     };
-
     preloadImages();
   }, []);
 
@@ -107,7 +116,15 @@ export default function Home() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {featureConfigs.map((config) => (
-                <Link key={config.id} href={config.href} passHref>
+                <Link 
+                  key={config.id} 
+                  href={config.href} 
+                  passHref
+                  // 根据 isExternal 标志决定是否在新标签页打开
+                  target={config.isExternal ? "_blank" : undefined}
+                  rel={config.isExternal ? "noopener noreferrer" : undefined}
+                  style={{ textDecoration: 'none' }}
+                >
                   <div className={`feature-button ${config.className}`}>
                     <div className="gradient-overlay"></div>
                     <div className="feature-button-content !p-6">

@@ -346,3 +346,14 @@
 .feature-button-content {
    padding: 1.5rem !important;
 }
+
+/* 指向魔法少女生成器的链接按钮样式 */
+.generator-link-card .gradient-overlay {
+  background: linear-gradient(45deg, #ff9a9e, #fecfef 50%,#ff6b6b);
+}
+.generator-link-card .feature-title-container {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a6f, #d63384);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

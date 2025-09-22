@@ -39,7 +39,7 @@ export default function Footer({ className = "footer", textWhite = false }: Foot
         <a href="https://docs.qq.com/form/page/DYmdrdWFQdmZCSGdZ" target="_blank" rel="noopener noreferrer" className="footer-link">反馈问题</a>
       </p>
       <p>
-        <a href="https://github.com/colasama/MahoShojo-Generator" target="_blank" rel="noopener noreferrer" className="footer-link">colasama/MahoShojo-Generator</a>
+        <a href="https://github.com/notuhao/MahoShojo-ARENA-TRPG-Helper" target="_blank" rel="noopener noreferrer" className="footer-link">notuhao/MahoShojo-ARENA-TRPG-Helper</a>
       </p>
     </footer>
   );
