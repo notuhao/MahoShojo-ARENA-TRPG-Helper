@@ -377,3 +377,35 @@ body {
     }
   }
 }
+
+@layer base {
+  /* 为prose(文章)元素定义一些基础样式变量，使其更符合我们的主题 */
+  .prose {
+    --tw-prose-body: theme(colors.gray[700]);
+    --tw-prose-headings: theme(colors.gray[900]);
+    --tw-prose-lead: theme(colors.gray[600]);
+    --tw-prose-links: theme(colors.purple[700]);
+    --tw-prose-bold: theme(colors.gray[900]);
+    --tw-prose-counters: theme(colors.gray[500]);
+    --tw-prose-bullets: theme(colors.gray[300]);
+    --tw-prose-hr: theme(colors.gray[200]);
+    --tw-prose-quotes: theme(colors.gray[900]);
+    --tw-prose-quote-borders: theme(colors.purple[200]);
+    --tw-prose-captions: theme(colors.gray[500]);
+    --tw-prose-code: theme(colors.purple[900]);
+    --tw-prose-pre-code: theme(colors.purple[200]);
+    --tw-prose-pre-bg: theme(colors.gray[800]);
+    --tw-prose-th-borders: theme(colors.gray[300]);
+    --tw-prose-td-borders: theme(colors.gray[200]);
+  }
+
+  /* 滚动行为平滑，用于目录跳转 */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* 为标题添加滚动边距，防止被顶部导航栏遮挡 */
+  h1[id], h2[id], h3[id], h4[id], h5[id], h6[id] {
+    scroll-margin-top: 80px; /* 根据你的header高度调整 */
+  }
+}
