@@ -1,17 +1,16 @@
 // pages/api/ai/create-character.tsx
 
 import { streamWithAI, GenerationConfig } from '@/lib/ai';
-import { characterSheetSchema } from '@/lib/schemas/characterSheetSchema';
+import { characterSheetSchema, AICharacterSheet } from '@/lib/schemas/characterSheetSchema';
 import { SKILLS } from '@/lib/trpg/skills';
 import { EFFECT_TAGS, MODIFIER_TAGS } from '@/lib/trpg/powers';
 import type { NextRequest } from 'next/server';
 
 /**
- * @fileoverview AI辅助角色创建的API端点 (重构版)。
+ * @fileoverview AI辅助角色创建的API端点 (最终修正版)。
  * @description
- * 此端点现在调用封装好的 `streamWithAI` 服务来处理AI生成逻辑。
- * 它负责定义生成任务的具体配置（如System Prompt），并处理请求和响应流。
- * 新增了对 "isDowngrade" 参数的支持，允许前端请求使用轻量级模型。
+ * 此版本使用 `result.toTextStreamResponse()` 来正确处理Edge Runtime下的流式响应，
+ * 彻底解决了对象无法写入响应流的根本问题。
  */
 
 export const config = {
@@ -30,8 +29,7 @@ export default async function handler(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'User prompt is required' }), { status: 400 });
     }
 
-    // 1. 定义本次AI生成的具体配置
-    const generationConfig: GenerationConfig<any, any> = {
+    const generationConfig: GenerationConfig<AICharacterSheet, { prompt: string }> = {
       systemPrompt: `你是一位专业的《魔法少女竞技场TRPG》游戏设计师。你的任务是根据用户提供的简短描述，创造一个完整、详细且严格遵守规则的角色卡。
 
       **核心规则与硬性约束:**
@@ -63,21 +61,18 @@ export default async function handler(req: NextRequest) {
       temperature: 0.8,
       maxTokens: 4096,
       taskName: 'TRPG角色创建',
-      // 根据前端请求决定是否覆盖为轻量模型
       modelOverride: isDowngrade ? "gemini-1.5-flash-latest" : undefined,
     };
 
-    // 2. 调用AI服务核心，并获取响应流
-    const stream = await streamWithAI({ prompt: userPrompt }, generationConfig);
+    // 调用AI服务核心
+    const result = await streamWithAI({ prompt: userPrompt }, generationConfig);
     
-    // 3. 将AI生成的流直接返回给客户端
-    return new Response(stream, {
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    });
+    // 【核心修正】使用 Vercel AI SDK 提供的辅助函数来创建响应。
+    // 它会自动处理对象流到文本流的转换，并设置正确的HTTP头。
+    return result.toTextStreamResponse();
 
   } catch (error: any) {
     console.error('AI生成失败:', error);
-    // 返回一个结构化的错误信息，前端可以更容易地解析和显示
     return new Response(JSON.stringify({ 
       error: 'AI服务存在问题，请稍后重试。', 
       details: error.message 

@@ -1,6 +1,6 @@
 // lib/ai.ts
 
-import { streamObject, NoObjectGeneratedError } from "ai";
+import { streamObject, NoObjectGeneratedError, StreamObjectResult } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
@@ -89,12 +89,12 @@ function expandProviders(providers: AIProvider[]): AIProvider[] {
  * 通用AI流式生成函数
  * @param input - 传递给 promptBuilder 的输入数据
  * @param generationConfig - 本次生成的详细配置
- * @returns 返回一个可读的流 (ReadableStream)
+ * @returns 返回一个包含流和元数据的 StreamObjectResult 对象
  */
 export async function streamWithAI<T, I = any>(
   input: I,
   generationConfig: GenerationConfig<T, I>
-): Promise<ReadableStream> {
+) {
   const providers = expandProviders(config.PROVIDERS);
   if (providers.length === 0) {
     log.error("AI服务未配置: 环境变量 AI_PROVIDERS_CONFIG 为空。");
@@ -106,7 +106,7 @@ export async function streamWithAI<T, I = any>(
     case 'random':
       providersToTry = weightedRandomSelect(providers);
       break;
-    default: // sequential
+    default:
       providersToTry = providers;
   }
 
@@ -122,7 +122,7 @@ export async function streamWithAI<T, I = any>(
         const llm = createAIClient(provider);
         const result = await streamObject({
           model: llm(selectedModel),
-          schema: generationConfig.schema,
+          schema: generationConfig.schema as z.ZodSchema<T>,
           system: generationConfig.systemPrompt,
           prompt: generationConfig.promptBuilder(input),
           temperature: generationConfig.temperature,
@@ -131,8 +131,7 @@ export async function streamWithAI<T, I = any>(
         });
         log.info(`提供商 ${provider.name} 成功响应 (尝试 ${attempt}/${retryCount})`);
         
-        // 【修正 #2】新版SDK直接返回 partialObjectStream
-        return result.partialObjectStream;
+        return result;
 
       } catch (error) {
         lastError = error;
