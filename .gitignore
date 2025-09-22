@@ -45,3 +45,8 @@ next-env.d.ts
 
 # doc
 /SRS
+
+# Dependency lock files
+package-lock.json
+bun.lockb
+yarn.lock
