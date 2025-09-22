@@ -34,7 +34,7 @@ const parseAIProviders = (): AIProvider[] => {
   // 向后兼容：单个 API Key 方式
   const singleKey = process.env.AI_API_KEY;
   const singleUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1';
-  const singleModel = process.env.AI_MODEL || 'gemini-2.0-flash';
+  const singleModel = process.env.AI_MODEL || 'gemini-2.5-flash-lite';
 
   if (singleKey) {
     return [{

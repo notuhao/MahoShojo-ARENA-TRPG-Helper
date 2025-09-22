@@ -1,46 +1,38 @@
 // pages/api/ai/create-character.tsx
 
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamObject } from 'ai';
-import { NextApiRequest, NextApiResponse } from 'next';
+import { streamWithAI, GenerationConfig } from '@/lib/ai';
 import { characterSheetSchema } from '@/lib/schemas/characterSheetSchema';
 import { SKILLS } from '@/lib/trpg/skills';
 import { EFFECT_TAGS, MODIFIER_TAGS } from '@/lib/trpg/powers';
+import type { NextRequest } from 'next/server';
 
 /**
- * @fileoverview AI辅助角色创建的API端点。
+ * @fileoverview AI辅助角色创建的API端点 (重构版)。
  * @description
- * [V1.2] 修复了 AI Provider 的实例化问题。
- * 使用 createOpenAI() 方法来创建包含自定义配置的客户端实例。
+ * 此端点现在调用封装好的 `streamWithAI` 服务来处理AI生成逻辑。
+ * 它负责定义生成任务的具体配置（如System Prompt），并处理请求和响应流。
+ * 新增了对 "isDowngrade" 参数的支持，允许前端请求使用轻量级模型。
  */
 
-// [FIXED & IMPROVED] 使用 createOpenAI 创建一个预先配置好的AI Provider实例
-// 这是库所推荐的、用于自定义API Key和Base URL的方式。
-const openai = createOpenAI({
-  apiKey: process.env.AI_API_KEY,
-  baseURL: process.env.AI_BASE_URL || 'https://api.openai.com/v1',
-});
+export const config = {
+  runtime: 'edge',
+};
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextRequest) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method Not Allowed' });
-    return;
-  }
-
-  const { prompt: userPrompt } = req.body;
-
-  if (!userPrompt) {
-    res.status(400).json({ error: 'User prompt is required' });
-    return;
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405 });
   }
 
   try {
-    const result = await streamObject({
-      // [FIXED] 使用实例化的 openai 客户端来指定模型
-      model: openai('gpt-4o'), 
-      schema: characterSheetSchema,
-      prompt: userPrompt,
-      system: `你是一位专业的《魔法少女竞技场TRPG》游戏设计师。你的任务是根据用户提供的简短描述，创造一个完整、详细且严格遵守规则的角色卡。
+    const { prompt: userPrompt, isDowngrade = true } = await req.json();
+
+    if (!userPrompt) {
+      return new Response(JSON.stringify({ error: 'User prompt is required' }), { status: 400 });
+    }
+
+    // 1. 定义本次AI生成的具体配置
+    const generationConfig: GenerationConfig<any, any> = {
+      systemPrompt: `你是一位专业的《魔法少女竞技场TRPG》游戏设计师。你的任务是根据用户提供的简短描述，创造一个完整、详细且严格遵守规则的角色卡。
 
       **核心规则与硬性约束:**
       1.  **属性点数:** 7项核心属性 (STR, CON, AGI, MAG, WILL, PER, CHM) 的总和必须 **严格等于 280 点**。每一项属性的数值必须在 **10 到 80** 之间。
@@ -66,27 +58,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       4.  **合理地** 分配150点技能点。确保技能分配能反映角色的专长和背景故事。
       5.  **最具创造性的一步:** 设计2-3个总成本恰好为20 PCP的“心之花”能力。为它们取名，并组合效果与修正标签，使其与角色设定相符。
       6.  最终，将所有数据整合为一个符合Schema的JSON对象并返回。不要包含任何额外的解释或注释，只返回JSON对象。`,
-    });
+      promptBuilder: (input: { prompt: string }) => input.prompt,
+      schema: characterSheetSchema,
+      temperature: 0.8,
+      maxTokens: 4096,
+      taskName: 'TRPG角色创建',
+      // 根据前端请求决定是否覆盖为轻量模型
+      modelOverride: isDowngrade ? "gemini-1.5-flash-latest" : undefined,
+    };
 
-    res.writeHead(200, {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
-    });
+    // 2. 调用AI服务核心，并获取响应流
+    const stream = await streamWithAI({ prompt: userPrompt }, generationConfig);
     
-    // 将流式数据直接管道到响应中
-    for await (const partialObject of result.partialObjectStream) {
-        const chunk = JSON.stringify(partialObject)
-        res.write(chunk);
-    }
-    res.end();
+    // 3. 将AI生成的流直接返回给客户端
+    return new Response(stream, {
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
 
   } catch (error: any) {
     console.error('AI生成失败:', error);
-    res.status(500).json({ error: 'AI服务存在问题，请稍后重试。', details: error.message });
+    // 返回一个结构化的错误信息，前端可以更容易地解析和显示
+    return new Response(JSON.stringify({ 
+      error: 'AI服务存在问题，请稍后重试。', 
+      details: error.message 
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
-
-// 声明Edge运行时，这对于Cloudflare Pages的Next.js预设是必需的
-export const config = {
-  runtime: 'edge',
-};
