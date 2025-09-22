@@ -376,6 +376,18 @@ body {
       transform: translateX(0);
     }
   }
+  /* 用于可访问性的sr-only类，它会隐藏元素但保留给屏幕阅读器读取 */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 }
 
 @layer base {

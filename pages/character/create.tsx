@@ -15,11 +15,10 @@ import { EFFECT_TAGS, MODIFIER_TAGS } from '../../lib/trpg/powers';
 import { SKILLS } from '../../lib/trpg/skills';
 import CharacterSheetDisplay from '../../components/character-creator/CharacterSheetDisplay';
 import { X } from 'lucide-react';
-
+import AICharacterCreatorPanel from '@/components/character-creator/AICharacterCreatorPanel';
 
 /**
  * @fileoverview 魔法少女竞技场TRPG角色创建器主页面。
- * @description [V4-Final] 完成版。集成所有创建步骤和导出功能。
  */
 
 // --- 类型定义区 ---
@@ -88,6 +87,8 @@ const CharacterCreatorPage: React.FC = () => {
     powers: [],
   });
 
+  const [isGenerating, setIsGenerating] = useState(false);
+
   // 图片保存
   const [showImageModal, setShowImageModal] = useState(false);
   const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
@@ -142,6 +143,12 @@ const CharacterCreatorPage: React.FC = () => {
     }));
   }, []);
 
+  const handleCharacterGenerated = useCallback((generatedSheet: CharacterSheet) => {
+    const powersWithUniqueIds = generatedSheet.powers.map(p => ({ ...p, id: Date.now() + Math.random() }));
+    setCharacter({ ...generatedSheet, powers: powersWithUniqueIds });
+    document.getElementById('step-1-info')?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
   const handleSaveImageCallback = useCallback((imageUrl: string, width: number, height: number) => {
     setSavedImageUrl(imageUrl);
     setSavedImageSize({ width, height });
@@ -168,11 +175,14 @@ const CharacterCreatorPage: React.FC = () => {
           <div className="space-y-8">
             {/* 步骤一：核心属性 */}
             <section>
+              <AICharacterCreatorPanel onCharacterGenerated={handleCharacterGenerated} isGenerating={isGenerating} setIsGenerating={setIsGenerating} />
+            </section>
+            <section id="step-1-info">
               <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 1: 完善角色信息</h2>
               <CharacterInfoPanel info={character.info} onInfoChange={handleInfoChange} />
             </section>
 
-            <section>
+            <section id="step-2-attributes">
               <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 2: 分配核心属性</h2>
               <AttributesPanel
                 attributes={character.attributes}
@@ -188,7 +198,7 @@ const CharacterCreatorPage: React.FC = () => {
             </section>
             
             {/* 步骤三：技能分配 */}
-            <section>
+            <section id="step-3-skills">
               <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 3: 分配技能点</h2>
               <SkillAllocatorPanel
                 attributes={character.attributes}
@@ -200,7 +210,7 @@ const CharacterCreatorPage: React.FC = () => {
             </section>
 
             {/* 步骤四：能力构筑 */}
-            <section>
+            <section id="step-4-powers">
               <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 4: 设计能力</h2>
               <PowerCreatorPanel
                 powers={character.powers}
@@ -211,7 +221,7 @@ const CharacterCreatorPage: React.FC = () => {
             </section>
 
             {/* 步骤五：预览与图片生成区域 */}
-            <section>
+            <section id="step-5-preview">
               <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 5: 预览与生成</h2>
               <CharacterSheetDisplay 
                 characterSheet={character} 
@@ -220,7 +230,7 @@ const CharacterCreatorPage: React.FC = () => {
             </section>
 
             {/* 步骤六：导出 */}
-            <section>
+            <section id="step-6-export">
               <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 6: 导出JSON</h2>
               <ExportPanel characterSheet={character} />
             </section>
@@ -248,6 +258,7 @@ const CharacterCreatorPage: React.FC = () => {
             {/* 豁免内容区域的 a11y 规则 */}
             {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
             <div 
+              role="dialog" aria-modal="true" aria-labelledby="image-modal-title" 
               className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-auto relative p-4"
               onClick={(e) => e.stopPropagation()}
             >
