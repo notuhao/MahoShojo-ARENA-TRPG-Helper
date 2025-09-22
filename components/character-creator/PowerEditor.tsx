@@ -95,7 +95,6 @@ const PowerEditor: React.FC<PowerEditorProps> = ({ power, onPowerChange, onRemov
         <p className="text-sm font-medium text-gray-700 mb-2">修正标签:</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {MODIFIER_TAGS.map(mod => {
-            // [修复] 为input和label添加关联
             const inputId = `mod-${power.id}-${mod.id}`;
             return (
               <label key={mod.id} htmlFor={inputId} className="flex items-center space-x-2 p-2 bg-white border rounded-md cursor-pointer">
