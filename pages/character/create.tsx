@@ -1,6 +1,6 @@
 // pages/character/create.tsx
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -14,7 +14,7 @@ import ExportPanel from '../../components/character-creator/ExportPanel';
 import { EFFECT_TAGS, MODIFIER_TAGS } from '../../lib/trpg/powers';
 import { SKILLS } from '../../lib/trpg/skills';
 import CharacterSheetDisplay from '../../components/character-creator/CharacterSheetDisplay';
-import { X } from 'lucide-react';
+import { X, Upload, ClipboardPaste } from 'lucide-react';
 import AICharacterCreatorPanel from '@/components/character-creator/AICharacterCreatorPanel';
 
 /**
@@ -76,30 +76,36 @@ const initialInfo: CharacterInfo = {
   realName: '', codename: '', belief: '', bonds: '', background: '',
 };
 
-// --- 主组件 ---
-
-const CharacterCreatorPage: React.FC = () => {
-  // 核心State
-  const [character, setCharacter] = useState<CharacterSheet>({
+// 【新增】定义一个完整的、空的初始角色卡模板，用于优雅地合并导入数据
+const initialCharacterSheet: CharacterSheet = {
     info: initialInfo,
     attributes: initialAttributes,
     skills: initialSkillPoints,
     powers: [],
-  });
+};
 
+
+// --- 主组件 ---
+
+const CharacterCreatorPage: React.FC = () => {
+  const [character, setCharacter] = useState<CharacterSheet>(initialCharacterSheet);
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // 图片保存
   const [showImageModal, setShowImageModal] = useState(false);
   const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
   const [savedImageSize, setSavedImageSize] = useState<{ width: number, height: number } | null>(null);
+  
+  // 【新增】导入功能相关状态
+  const [pastedJson, setPastedJson] = useState('');
+  const [isPasteAreaVisible, setIsPasteAreaVisible] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 规则预算
   const TOTAL_ATTRIBUTE_POINTS = 280;
   const TOTAL_SKILL_POINTS = 150;
   const TOTAL_PCP = 20;
 
-  // 使用 useMemo 优化计算性能
+  // 优化计算性能
   const spentAttributePoints = useMemo(() => Object.values(character.attributes).reduce((sum, value) => sum + value, 0), [character.attributes]);
   const spentSkillPoints = useMemo(() => Object.values(character.skills).reduce((sum, value) => sum + value, 0), [character.skills]);
   const spentPcpPoints = useMemo(() => {
@@ -119,36 +125,80 @@ const CharacterCreatorPage: React.FC = () => {
     }, 0);
   }, [character.powers]);
 
-  // 更新回调函数区 (使用 useCallback 优化)
-  const handleAttributesChange = useCallback((newAttributes: CharacterAttributes) => {
-    setCharacter(prev => ({ ...prev, attributes: newAttributes }));
+  // 【新增】检测移动设备，默认展开粘贴区域
+  useEffect(() => {
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      setIsPasteAreaVisible(true);
+    }
   }, []);
 
-  const handleSkillPointsChange = useCallback((skillId: string, points: number) => {
-    setCharacter(prev => ({
-      ...prev,
-      skills: { ...prev.skills, [skillId]: points },
-    }));
-  }, []);
-  
-  const handlePowersChange = useCallback((newPowers: Power[]) => {
-    setCharacter(prev => ({ ...prev, powers: newPowers }));
-  }, []);
-  
-  // 更新角色信息的回调
-  const handleInfoChange = useCallback((fieldName: keyof CharacterInfo, value: string) => {
-    setCharacter(prev => ({
-        ...prev,
-        info: { ...prev.info, [fieldName]: value }
-    }));
-  }, []);
+  // 【新增】处理JSON导入的核心逻辑
+  const processAndLoadJson = (jsonString: string) => {
+    try {
+      const importedData = JSON.parse(jsonString);
 
+      // 深度合并导入的数据和初始模板，优雅处理缺失字段
+      const newCharacterSheet: CharacterSheet = {
+        info: { ...initialCharacterSheet.info, ...(importedData.info || {}) },
+        attributes: { ...initialCharacterSheet.attributes, ...(importedData.attributes || {}) },
+        skills: { ...initialCharacterSheet.skills, ...(importedData.skills || {}) },
+        powers: (importedData.powers || []).map((p: any) => ({
+          ...p,
+          id: Date.now() + Math.random(), // 重新生成唯一的临时ID
+        })),
+      };
+      
+      setCharacter(newCharacterSheet);
+      setMessage({ type: 'success', text: '角色数据加载成功！' });
+      // 滚动到第一个编辑面板，方便用户查看
+      document.getElementById('step-1-info')?.scrollIntoView({ behavior: 'smooth' });
+
+    } catch (error) {
+      setMessage({ type: 'error', text: '加载失败：无效的JSON格式。' });
+      console.error("JSON parsing error:", error);
+    }
+  };
+
+  // 【新增】处理文件上传
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      processAndLoadJson(text);
+    };
+    reader.onerror = () => {
+      setMessage({ type: 'error', text: '读取文件失败。' });
+    };
+    reader.readAsText(file);
+    // 清空input的值，以便可以重复上传同一个文件
+    if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+  };
+
+  // 【新增】处理粘贴加载
+  const handlePasteAndLoad = () => {
+    if (!pastedJson.trim()) {
+      setMessage({ type: 'error', text: '粘贴内容不能为空。' });
+      return;
+    }
+    processAndLoadJson(pastedJson);
+  };
+
+  // 更新回调函数区
+  const handleAttributesChange = useCallback((newAttributes: CharacterAttributes) => setCharacter(prev => ({ ...prev, attributes: newAttributes })), []);
+  const handleSkillPointsChange = useCallback((skillId: string, points: number) => setCharacter(prev => ({ ...prev, skills: { ...prev.skills, [skillId]: points } })), []);
+  const handlePowersChange = useCallback((newPowers: Power[]) => setCharacter(prev => ({ ...prev, powers: newPowers })), []);
+  const handleInfoChange = useCallback((fieldName: keyof CharacterInfo, value: string) => setCharacter(prev => ({ ...prev, info: { ...prev.info, [fieldName]: value } })), []);
   const handleCharacterGenerated = useCallback((generatedSheet: CharacterSheet) => {
     const powersWithUniqueIds = generatedSheet.powers.map(p => ({ ...p, id: Date.now() + Math.random() }));
     setCharacter({ ...generatedSheet, powers: powersWithUniqueIds });
     document.getElementById('step-1-info')?.scrollIntoView({ behavior: 'smooth' });
   }, []);
-
   const handleSaveImageCallback = useCallback((imageUrl: string, width: number, height: number) => {
     setSavedImageUrl(imageUrl);
     setSavedImageSize({ width, height });
@@ -173,6 +223,46 @@ const CharacterCreatorPage: React.FC = () => {
           </div>
 
           <div className="space-y-8">
+            
+            {/* 导入功能区 */}
+            <section id="import-character">
+              <div className="p-6 bg-gray-100 border border-gray-200 rounded-xl">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">加载已有角色</h3>
+                {message && (
+                  <div className={`p-3 rounded-md mb-4 text-sm ${message.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                    {message.text}
+                  </div>
+                )}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <button onClick={() => fileInputRef.current?.click()} className="flex-1 generate-button flex items-center justify-center gap-2" style={{ background: 'linear-gradient(45deg, #60a5fa, #3b82f6)'}}>
+                    <Upload size={20} />
+                    上传 .json 文件
+                  </button>
+                  <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
+                </div>
+
+                <div className="mt-4">
+                  <button onClick={() => setIsPasteAreaVisible(!isPasteAreaVisible)} className="text-sm font-semibold text-purple-700 hover:underline">
+                    {isPasteAreaVisible ? '▼ 折叠文本粘贴区域' : '▶ 展开文本粘贴区域 (手机端推荐)'}
+                  </button>
+                  {isPasteAreaVisible && (
+                    <div className="mt-2 space-y-2">
+                      <textarea
+                        value={pastedJson}
+                        onChange={(e) => setPastedJson(e.target.value)}
+                        rows={4}
+                        placeholder="在此处粘贴角色卡的JSON文本内容..."
+                        className="input-field w-full"
+                      />
+                      <button onClick={handlePasteAndLoad} className="w-full generate-button flex items-center justify-center gap-2" style={{ marginBottom: 0 }}>
+                        <ClipboardPaste size={20} />
+                        从文本加载
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
             {/* 步骤一：核心属性 */}
             <section>
               <AICharacterCreatorPanel onCharacterGenerated={handleCharacterGenerated} isGenerating={isGenerating} setIsGenerating={setIsGenerating} />
