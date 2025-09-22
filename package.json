@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/google": "^2.0.14",
     "@ai-sdk/openai": "^2.0.32",
+    "@zumer/snapdom": "^1.9.11",
     "ai": "^5.0.48",
     "geist": "^1.5.1",
     "lucide-react": "^0.544.0",

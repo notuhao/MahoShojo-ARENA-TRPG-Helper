@@ -8,11 +8,12 @@ import AttributesPanel from '../../components/character-creator/AttributesPanel'
 import DerivedStatsPanel from '../../components/character-creator/DerivedStatsPanel';
 import SkillAllocatorPanel from '../../components/character-creator/SkillAllocatorPanel';
 import PowerCreatorPanel from '../../components/character-creator/PowerCreatorPanel';
-// [新增] 导入最后两个组件
 import CharacterInfoPanel from '../../components/character-creator/CharacterInfoPanel';
 import ExportPanel from '../../components/character-creator/ExportPanel';
 import { EFFECT_TAGS, MODIFIER_TAGS } from '../../lib/trpg/powers';
 import { SKILLS } from '../../lib/trpg/skills';
+import CharacterSheetDisplay from '../../components/character-creator/CharacterSheetDisplay';
+import { X } from 'lucide-react';
 
 
 /**
@@ -86,6 +87,10 @@ const CharacterCreatorPage: React.FC = () => {
     powers: [],
   });
 
+  // 图片保存
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
+
   // 规则预算
   const TOTAL_ATTRIBUTE_POINTS = 280;
   const TOTAL_SKILL_POINTS = 150;
@@ -127,12 +132,18 @@ const CharacterCreatorPage: React.FC = () => {
     setCharacter(prev => ({ ...prev, powers: newPowers }));
   }, []);
   
-  // [新增] 更新角色信息的回调
+  // 更新角色信息的回调
   const handleInfoChange = useCallback((fieldName: keyof CharacterInfo, value: string) => {
     setCharacter(prev => ({
         ...prev,
         info: { ...prev.info, [fieldName]: value }
     }));
+  }, []);
+
+  // 图片保存的回调
+  const handleSaveImageCallback = useCallback((imageUrl: string) => {
+    setSavedImageUrl(imageUrl);
+    setShowImageModal(true);
   }, []);
 
   return (
@@ -197,9 +208,18 @@ const CharacterCreatorPage: React.FC = () => {
               />
             </section>
 
-            {/* 步骤五：导出 */}
+            {/* 步骤五：预览与图片生成区域 */}
             <section>
-              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 5: 完成与导出</h2>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 5: 预览与生成</h2>
+              <CharacterSheetDisplay 
+                characterSheet={character} 
+                onSaveImage={handleSaveImageCallback}
+              />
+            </section>
+
+            {/* 步骤六：导出 */}
+            <section>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-700">步骤 6: 导出JSON</h2>
               <ExportPanel characterSheet={character} />
             </section>
 
@@ -213,6 +233,35 @@ const CharacterCreatorPage: React.FC = () => {
 
           <Footer />
         </div>
+
+        {/* --- 图片模态框 --- */}
+        {showImageModal && savedImageUrl && (
+          <div 
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowImageModal(false)}
+          >
+            <div 
+              className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-auto relative p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setShowImageModal(false)} 
+                className="absolute top-2 right-2 text-3xl text-gray-600 hover:text-gray-900 z-10"
+              >
+                <X size={24} />
+              </button>
+              <p className="text-center text-sm text-gray-600 mb-2">
+                📱 移动端请长按图片保存到相册
+              </p>
+              <img 
+                src={savedImageUrl} 
+                alt="角色卡片" 
+                className="w-full h-auto rounded-lg" 
+              />
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );
