@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import Footer from '../../components/Footer';
 import AttributesPanel from '../../components/character-creator/AttributesPanel';
 import DerivedStatsPanel from '../../components/character-creator/DerivedStatsPanel';
@@ -90,6 +91,7 @@ const CharacterCreatorPage: React.FC = () => {
   // 图片保存
   const [showImageModal, setShowImageModal] = useState(false);
   const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
+  const [savedImageSize, setSavedImageSize] = useState<{ width: number, height: number } | null>(null);
 
   // 规则预算
   const TOTAL_ATTRIBUTE_POINTS = 280;
@@ -140,9 +142,9 @@ const CharacterCreatorPage: React.FC = () => {
     }));
   }, []);
 
-  // 图片保存的回调
-  const handleSaveImageCallback = useCallback((imageUrl: string) => {
+  const handleSaveImageCallback = useCallback((imageUrl: string, width: number, height: number) => {
     setSavedImageUrl(imageUrl);
+    setSavedImageSize({ width, height });
     setShowImageModal(true);
   }, []);
 
@@ -236,10 +238,15 @@ const CharacterCreatorPage: React.FC = () => {
 
         {/* --- 图片模态框 --- */}
         {showImageModal && savedImageUrl && (
-          <div 
+          <div
+            role="button"
+            tabIndex={0}
             className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
             onClick={() => setShowImageModal(false)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowImageModal(false); }}
           >
+            {/* 豁免内容区域的 a11y 规则 */}
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
             <div 
               className="bg-white rounded-lg max-w-lg w-full max-h-[80vh] overflow-auto relative p-4"
               onClick={(e) => e.stopPropagation()}
@@ -247,21 +254,27 @@ const CharacterCreatorPage: React.FC = () => {
               <button 
                 onClick={() => setShowImageModal(false)} 
                 className="absolute top-2 right-2 text-3xl text-gray-600 hover:text-gray-900 z-10"
+                aria-label="关闭图片预览"
               >
                 <X size={24} />
               </button>
               <p className="text-center text-sm text-gray-600 mb-2">
                 📱 移动端请长按图片保存到相册
               </p>
-              <img 
-                src={savedImageUrl} 
-                alt="角色卡片" 
-                className="w-full h-auto rounded-lg" 
-              />
+              {/* 使用 Next/Image 组件 */}
+              {savedImageSize && (
+                <Image 
+                  src={savedImageUrl} 
+                  alt="角色卡片" 
+                  className="w-full h-auto rounded-lg"
+                  width={savedImageSize.width}
+                  height={savedImageSize.height}
+                  unoptimized // 因为是动态生成的data URL，不进行优化
+                />
+              )}
             </div>
           </div>
         )}
-
       </div>
     </>
   );

@@ -1,11 +1,12 @@
 // components/character-creator/CharacterSheetDisplay.tsx
 
 import React, { useRef } from 'react';
+import Image from 'next/image';
 import { snapdom } from '@zumer/snapdom';
 import { CharacterSheet } from '../../pages/character/create';
 import { SKILLS } from '@/lib/trpg/skills';
 import { EFFECT_TAGS, MODIFIER_TAGS } from '@/lib/trpg/powers';
-import { Download, Copy } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 /**
  * @fileoverview 角色卡可视化展示组件
@@ -14,11 +15,9 @@ import { Download, Copy } from 'lucide-react';
  * 同时，该组件内聚了使用 @zumer/snapdom 库进行截图导出的全部逻辑，
  * 遵循了参考项目 MahoShojo-Generator 中的成熟实践。
  */
-
-// 组件Props定义
 interface CharacterSheetDisplayProps {
   characterSheet: CharacterSheet;
-  onSaveImage: (imageUrl: string) => void; // 用于移动端的回调
+  onSaveImage: (imageUrl: string, width: number, height: number) => void;
 }
 
 const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ characterSheet, onSaveImage }) => {
@@ -31,7 +30,6 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
   const hp = Math.ceil((attributes.CON + attributes.STR) / 10);
   const mp = Math.ceil(attributes.MAG / 5);
   const radiance = Math.ceil(attributes.WILL / 5);
-  const dodge = Math.ceil(attributes.AGI / 2);
 
   // 计算伤害加值(DB)和体格(Build)
   const getDamageBonusAndBuild = (strPlusCon: number) => {
@@ -69,8 +67,8 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
       // 根据设备类型提供最佳保存体验
       const isMobileDevice = /Mobi/i.test(window.navigator.userAgent);
       if (isMobileDevice) {
-        // 移动端：调用父组件的回调，弹出模态框供用户长按保存
-        onSaveImage(imageUrl);
+        // 移动端：调用父组件的回调，并传递尺寸
+        onSaveImage(imageUrl, imgElement.naturalWidth, imgElement.naturalHeight);
       } else {
         // 桌面端：直接触发文件下载
         const link = document.createElement('a');
@@ -182,11 +180,12 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({ character
       
       {/* Logo占位符，仅在截图时显示 */}
       <div className="logo-placeholder" style={{ display: 'none', justifyContent: 'center', marginTop: '1rem' }}>
-        <img
+        <Image
             src="/logo-white-qrcode.svg"
             width={240} height={240}
             alt="MahoShojo ARENA TRPG Helper"
             style={{ display: 'block' }}
+            unoptimized
         />
       </div>
     </div>

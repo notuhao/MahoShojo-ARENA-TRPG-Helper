@@ -78,8 +78,9 @@ const PowerEditor: React.FC<PowerEditorProps> = ({ power, onPowerChange, onRemov
         </select>
         {selectedEffect?.isScalable && (
           <div className="flex items-center gap-2">
-            <label className="text-sm">阶数:</label>
+            <label htmlFor={`rank-input-${power.id}`} className="text-sm">阶数:</label>
             <input
+              id={`rank-input-${power.id}`}
               type="number"
               value={power.rank}
               onChange={(e) => onPowerChange({ ...power, rank: Math.max(1, parseInt(e.target.value) || 1) })}
