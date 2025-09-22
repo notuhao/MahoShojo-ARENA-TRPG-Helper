@@ -12,14 +12,11 @@ import Footer from '../components/Footer';
 import { Menu, X, ChevronsRight, ChevronsLeft } from 'lucide-react';
 
 /**
- * @fileoverview 魔法少女竞技场TRPG核心规则书页面 (v0.1.1 重构版)。
+ * @fileoverview 魔法少女竞技场TRPG核心规则书页面 (v0.1.2 UI/UX 重构版)。
  * @description 
- * [V1.1] 修复了构建时出现的 a11y (可访问性) ESLint 错误。
- * [V0.1.1 重构]
- * - 实现了SRS v0.1.1中FR-6/UI-1的需求，重构了UI和交互。
- * - 桌面端侧边栏目录现在是可折叠的，并默认为折叠状态，以优化阅读空间。
- * - 移动端菜单功能保持不变。
- * - 优化了标题ID的生成逻辑，使其更健壮。
+ * - [UI/UX重构] 桌面端侧边栏目录改为固定定位（position: fixed），并拥有独立的滚动条，解决了目录随正文滚动的问题。
+ * - [UI/UX重构] 将侧边栏及其开关按钮作为一个整体移至屏幕最左侧，解决了按钮与目录位置不协调的问题。
+ * - [UI/UX重构] 主内容区会根据目录的展开状态动态调整左边距，以防止内容被遮挡。
  */
 
 // --- 类型定义 ---
@@ -55,19 +52,19 @@ const RulebookSidebar: React.FC<RulebookSidebarProps> = ({ headings, activeId, o
   return (
     <nav className="space-y-4">
       <div>
-        <h3 className="font-bold text-gray-800 mb-2">目录</h3>
+        <h3 className="font-bold text-gray-800 mb-2 px-2">目录</h3>
         <ul className="space-y-1">
           {headings.map((heading) => (
             <li key={heading.id}>
               <a
                 href={`#${heading.id}`}
-                onClick={onLinkClick} // 点击时调用回调
-                className={`block py-1 text-sm transition-colors ${
+                onClick={onLinkClick}
+                className={`block py-1 text-sm transition-colors border-l-4 ${
                   activeId === heading.id
-                    ? 'text-purple-600 font-bold border-r-2 border-purple-600' // 高亮状态
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'text-purple-600 font-bold border-purple-600 bg-purple-50'
+                    : 'text-gray-600 hover:text-gray-900 border-transparent hover:bg-gray-100'
                 }`}
-                style={{ paddingLeft: `${(heading.level - 1) * 1}rem` }}
+                style={{ paddingLeft: `${(heading.level - 1) * 1 + 0.5}rem` }}
               >
                 {heading.text}
               </a>
@@ -96,10 +93,10 @@ const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
     }
   
     const handleObserver = (entries: IntersectionObserverEntry[]) => {
-        const intersectingEntries = entries.filter(e => e.isIntersecting);
-        if (intersectingEntries.length > 0) {
-            setActiveId(intersectingEntries[0].target.id);
-        }
+      const intersectingEntries = entries.filter(e => e.isIntersecting);
+      if (intersectingEntries.length > 0) {
+        setActiveId(intersectingEntries[0].target.id);
+      }
     };
   
     observer.current = new IntersectionObserver(handleObserver, {
@@ -111,7 +108,6 @@ const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
     headings.forEach(h => {
       const el = document.getElementById(h.id);
       if (el) {
-        headingElementsRef.current.set(h.id, el);
         observer.current?.observe(el);
       }
     });
@@ -127,19 +123,19 @@ const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
       return <h1 id={id} {...props}>{children}</h1>;
     },
     h2: ({ node, children, ...props }: any) => {
-        const text = React.Children.toArray(children).join('');
-        const id = generateHeadingId(text);
-        return <h2 id={id} {...props}>{children}</h2>;
+      const text = React.Children.toArray(children).join('');
+      const id = generateHeadingId(text);
+      return <h2 id={id} {...props}>{children}</h2>;
     },
     h3: ({ node, children, ...props }: any) => {
-        const text = React.Children.toArray(children).join('');
-        const id = generateHeadingId(text);
-        return <h3 id={id} {...props}>{children}</h3>;
+      const text = React.Children.toArray(children).join('');
+      const id = generateHeadingId(text);
+      return <h3 id={id} {...props}>{children}</h3>;
     },
     h4: ({ node, children, ...props }: any) => {
-        const text = React.Children.toArray(children).join('');
-        const id = generateHeadingId(text);
-        return <h4 id={id} {...props}>{children}</h4>;
+      const text = React.Children.toArray(children).join('');
+      const id = generateHeadingId(text);
+      return <h4 id={id} {...props}>{children}</h4>;
     },
   };
 
@@ -171,36 +167,37 @@ const RulebookPage: NextPage<RulebookPageProps> = ({ content, headings }) => {
             </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex relative">
-            {/* 【重构】桌面端可折叠侧边栏 */}
-            <aside className={`hidden md:block flex-shrink-0 transition-all duration-300 ease-in-out ${isDesktopSidebarOpen ? 'w-64 lg:w-72 mr-8' : 'w-0'}`}>
-              <div className={`sticky top-24 h-[calc(100vh-8rem)] overflow-y-auto ${isDesktopSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
+        {/* --- 桌面端侧边栏与内容区 --- */}
+        <div className="hidden md:block">
+            {/* 侧边栏，使用 fixed 定位 */}
+            <aside className={`fixed top-16 left-0 h-[calc(100vh-4rem)] w-72 bg-white/80 backdrop-blur-sm border-r z-30 transform transition-transform duration-300 ease-in-out ${isDesktopSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+              <div className="h-full overflow-y-auto pt-6 pb-12">
                 <RulebookSidebar headings={headings} activeId={activeId} />
               </div>
             </aside>
-            
-            {/* 【新增】桌面端侧边栏开关按钮 */}
-            <div className="hidden md:block">
-                <button 
-                    onClick={() => setDesktopSidebarOpen(!isDesktopSidebarOpen)}
-                    className="fixed top-1/2 -translate-y-1/2 bg-white p-2 rounded-r-lg shadow-lg border border-l-0 z-30 transition-transform duration-300 ease-in-out"
-                    style={{ left: isDesktopSidebarOpen ? '17rem' : '1rem' }} /* 272px = 17rem */
-                    aria-label={isDesktopSidebarOpen ? "折叠目录" : "展开目录"}
-                >
-                    {isDesktopSidebarOpen ? <ChevronsLeft size={20} /> : <ChevronsRight size={20} />}
-                </button>
-            </div>
 
+            {/* 侧边栏开关按钮，使用 fixed 定位 */}
+            <button 
+                onClick={() => setDesktopSidebarOpen(!isDesktopSidebarOpen)}
+                className="fixed top-1/2 -translate-y-1/2 bg-white p-1 rounded-r-lg shadow-lg border border-l-0 z-30 transition-all duration-300 ease-in-out"
+                style={{ left: isDesktopSidebarOpen ? '18rem' : '0rem' }} // 18rem = 72 * 0.25rem
+                aria-label={isDesktopSidebarOpen ? "折叠目录" : "展开目录"}
+            >
+                {isDesktopSidebarOpen ? <ChevronsLeft size={20} /> : <ChevronsRight size={20} />}
+            </button>
+        </div>
+
+        {/* 主内容区 */}
+        <main className={`transition-all duration-300 ease-in-out ${isDesktopSidebarOpen ? 'md:ml-72' : 'md:ml-0'}`}>
+          <div className="container mx-auto px-4 py-8">
             <article className="prose max-w-none w-full">
               <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
                 {content}
               </ReactMarkdown>
             </article>
           </div>
+          <Footer />
         </main>
-        
-        <Footer />
       </div>
 
        {/* 移动端抽屉式菜单 */}
