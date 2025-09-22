@@ -69,11 +69,33 @@ npm run dev
 
 在浏览器中打开 [http://localhost:3000](http://localhost:3000)，你就可以看到正在本地运行的网站了。所有代码修改都会自动热更新，无需手动刷新页面。
 
-## ☁️ 部署
+## ☁️ 部署 (Deployment)
 
-本项目已配置为通过 Cloudflare Pages 进行持续集成与部署 (CI/CD)。
+本项目已针对 **Cloudflare Pages** 进行优化，推荐使用该平台进行一键部署。
 
-任何时候，当新的代码被推送到 `main` 分支时，Cloudflare 将会自动拉取最新代码、执行构建流程，并将新版本无缝部署到线上。
+### Cloudflare Pages 部署指南
+
+1.  **Fork 本项目**: 在 GitHub 上 Fork 本项目到您自己的账户下。
+2.  **创建 Pages 项目**:
+    * 登录您的 Cloudflare 仪表盘，进入 **Workers & Pages**。
+    * 点击 **Create application** > **Pages** > **Connect to Git**。
+    * 选择您刚刚 Fork 的仓库。
+3.  **配置构建设置**:
+    * 在 **"Set up builds and deployments"** 页面，从 **Framework preset** (框架预设) 下拉菜单中选择 **Next.js**。
+    * Cloudflare 会自动为您填入大部分推荐配置。
+4.  **配置环境变量 (关键步骤)**:
+    * 展开 **Environment variables (advanced)** 部分。
+    * 点击 **Add variable**，为 **Production** 和 **Preview** 两个环境添加以下变量：
+        * `AI_PROVIDERS_CONFIG`: 您的AI提供商配置JSON字符串。请参考 `config/ai-providers.example.json` 格式。
+        * `SIGNATURE_SECRET_KEY`: 用于数据签名的密钥，请生成一个足够长且随机的字符串。
+        * `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile 的密钥（如果启用了相关验证）。
+5.  **配置兼容性标志 (关键步骤)**:
+    * 保存并部署后，进入您项目的 **Settings** > **Functions** 页面。
+    * 找到 **Compatibility Flags** (兼容性标志) 部分。
+    * 为 **Production** 和 **Preview** 两个环境都添加 `nodejs_compat` 标志。
+6.  **重新部署**: 完成兼容性标志配置后，请返回 **Deployments** 页面，对最新的部署点击 **Retry deployment** 以使配置生效。
+
+完成以上步骤后，您的《魔法少女竞技场TRPG - 辅助工具》即可在全球的Cloudflare网络上运行。
 
 ## 🤝 贡献
 
