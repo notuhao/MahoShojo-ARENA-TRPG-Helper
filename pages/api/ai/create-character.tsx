@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-// 声明Edge运行时，这对于流式响应至关重要
+// 声明Edge运行时，这对于Cloudflare Pages的Next.js预设是必需的
 export const config = {
   runtime: 'edge',
 };
