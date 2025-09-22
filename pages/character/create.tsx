@@ -16,6 +16,7 @@ import AICharacterCreatorPanel from '@/components/character-creator/AICharacterC
 import VitalsPanel from '@/components/character-creator/VitalsPanel';
 import NarrativePanel from '@/components/character-creator/NarrativePanel';
 import BondsPanel from '@/components/character-creator/BondsPanel';
+import StatusAndTraitsPanel from '@/components/character-creator/StatusAndTraitsPanel'; 
 
 import { EFFECT_TAGS, MODIFIER_TAGS, EffectTag, ModifierTag } from '../../lib/trpg/powers';
 import { SKILLS } from '../../lib/trpg/skills';
@@ -23,23 +24,33 @@ import levelingData from '../../lib/trpg/data/leveling.json';
 import { AIGeneratedCharacterData } from '@/lib/schemas/characterSheetSchema';
 import { X, Upload, ClipboardPaste } from 'lucide-react';
 
-// 定义单个能力的数据结构
 // --- 类型定义区 (v0.1.1) ---
 
-// 角色叙事信息类型
+// 力量层级，键名必须与 leveling.json 中的键一致
 export type PowerLevel = keyof typeof levelingData.levels;
-
+// 核心属性
 export interface CharacterAttributes { STR: number; CON: number; AGI: number; MAG: number; WILL: number; PER: number; CHM: number; }
+// 技能点记录，键为技能ID，值为投入点数
 export type SkillPoints = Record<string, number>;
+// 单个能力
 export interface Power { id: number; name: string; effectTagId: string; rank: number; modifierTagIds: string[]; }
+// 角色叙事信息
 export interface CharacterInfo { realName: string; codename: string; belief: string; background: string; appearance: string; faction: '魔法国度' | '爪痕' | '黑烬黎明' | '其他' | ''; customFaction?: string; }
+// 魔装
 export interface MagicConstruct { name: string; description: string; }
+// 奇境
 export interface WonderlandRule { description: string; }
+// 繁开能力
 export interface BloomingAbility { name: string; description: string; }
+// 繁开
 export interface Blooming { description: string; abilities: BloomingAbility[]; }
+// 宝石权杖
 export interface GemScepter { name: string; ability: string; }
+// 羁绊
 export interface Bond { id: number; target: string; description: string; statusAndNotes: string; radianceImpact: number; }
+// 动态数值 (如HP, MP)
 export interface DynamicStat { current: number; max: number; }
+// 最终完整的角色卡数据结构
 export interface CharacterSheet {
   info: CharacterInfo;
   attributes: CharacterAttributes;
@@ -59,6 +70,7 @@ export interface CharacterSheet {
 }
 
 // --- 初始值定义区 (v0.1.1) ---
+// 为新角色提供一个干净的、符合规则的初始状态模板。
 
 const initialAttributes: CharacterAttributes = { STR: 40, CON: 40, AGI: 40, MAG: 40, WILL: 40, PER: 40, CHM: 40 };
 const initialSkillPoints: SkillPoints = SKILLS.reduce((acc, skill) => { acc[skill.id] = 0; return acc; }, {} as SkillPoints);
@@ -82,30 +94,33 @@ const initialCharacterSheet: CharacterSheet = {
   negativeTraits: '',
 };
 
-
 // --- 主组件 ---
-
 const CharacterCreatorPage: React.FC = () => {
+  // --- State管理 ---
+  // 核心角色数据
   const [character, setCharacter] = useState<CharacterSheet>(initialCharacterSheet);
+  // 当前选择的力量层级
   const [powerLevel, setPowerLevel] = useState<PowerLevel>('seed');
-  
+  // AI是否正在生成中
   const [isGenerating, setIsGenerating] = useState(false);
+  // 图片预览模态框状态
   const [showImageModal, setShowImageModal] = useState(false);
   const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
   const [savedImageSize, setSavedImageSize] = useState<{ width: number, height: number } | null>(null);
-  
-  // 【新增】导入功能相关状态
+  // 导入/粘贴功能相关状态
   const [pastedJson, setPastedJson] = useState('');
   const [isPasteAreaVisible, setIsPasteAreaVisible] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 【修正】自定义内容的状态类型
+  // 自定义技能与能力标签
   const [customSkills, setCustomSkills] = useState<CustomSkill[]>([]);
   const [customEffectTags, setCustomEffectTags] = useState<EffectTag[]>([]);
   const [customModifierTags, setCustomModifierTags] = useState<ModifierTag[]>([]);
 
-  // 动态计算点数预算
+  // --- 派生状态与计算属性 (useMemo) ---
+  // 优点：避免在每次渲染时都进行重复的复杂计算，提升性能。
+
+  // 根据力量层级获取对应的点数预算和解锁能力
   const { totalAttributePoints, totalSkillPoints, totalPcp, bondBudget, unlocks } = useMemo(() => {
     const config = levelingData.levels[powerLevel];
     return {
@@ -119,42 +134,50 @@ const CharacterCreatorPage: React.FC = () => {
 
   // 实时计算已花费点数
   const spentAttributePoints = useMemo(() => Object.values(character.attributes).reduce((sum, value) => sum + value, 0), [character.attributes]);
+
+  // 计算已花费的技能点 (标准技能 + 自定义技能)
   const spentSkillPoints = useMemo(() => {
     const standard = Object.values(character.skills).reduce((a, b) => a + b, 0);
     const custom = customSkills.reduce((a, b) => a + (b.points || 0), 0);
     return standard + custom;
   }, [character.skills, customSkills]);
-  
+
+  // 计算已花费的PCP点数
   const spentPcpPoints = useMemo(() => {
-      const allTags = [...EFFECT_TAGS, ...customEffectTags, ...MODIFIER_TAGS, ...customModifierTags];
-      return character.powers.reduce((total, power) => {
-          let cost = 0;
-          const effect = allTags.find(t => t.id === power.effectTagId);
-          if (effect && 'isScalable' in effect) cost += effect.isScalable ? effect.cost * power.rank : effect.cost;
-          power.modifierTagIds.forEach(modId => {
-              const modifier = allTags.find(t => t.id === modId);
-              if (modifier) cost += modifier.cost;
-          });
-          return total + cost;
-      }, 0);
+    const allTags = [...EFFECT_TAGS, ...customEffectTags, ...MODIFIER_TAGS, ...customModifierTags];
+    return character.powers.reduce((total, power) => {
+      let cost = 0;
+      const effect = allTags.find(t => t.id === power.effectTagId);
+      if (effect && 'isScalable' in effect && typeof effect.isScalable === 'boolean') {
+        cost += effect.isScalable ? effect.cost * power.rank : effect.cost;
+      } else if (effect) {
+        cost += effect.cost;
+      }
+      power.modifierTagIds.forEach(modId => {
+        const modifier = allTags.find(t => t.id === modId);
+        if (modifier) cost += modifier.cost;
+      });
+      return total + cost;
+    }, 0);
   }, [character.powers, customEffectTags, customModifierTags]);
 
-  // 当核心属性变化时，自动更新衍生值的上限
+  // --- 副作用 (useEffect) ---
+  // 当核心属性变化时，自动重新计算并更新衍生数值的上限值
   useEffect(() => {
     const { STR, CON, MAG, WILL } = character.attributes;
     const maxHp = Math.ceil((CON + STR) / 10);
     const maxMp = Math.ceil(MAG / 5);
     const maxRadiance = Math.ceil(WILL / 5);
     setCharacter(prev => ({
-        ...prev,
-        hp: { max: maxHp, current: Math.min(prev.hp.current, maxHp) },
-        mp: { max: maxMp, current: Math.min(prev.mp.current, maxMp) },
-        radiance: { max: maxRadiance, current: Math.min(prev.radiance.current, maxRadiance) },
+      ...prev,
+      hp: { max: maxHp, current: Math.min(prev.hp.current, maxHp) },
+      mp: { max: maxMp, current: Math.min(prev.mp.current, maxMp) },
+      radiance: { max: maxRadiance, current: Math.min(prev.radiance.current, maxRadiance) },
     }));
   }, [character.attributes]);
 
+  // --- 回调函数 (useCallback) ---
 
-  // 更新回调函数区
   const handleAttributesChange = useCallback((newAttributes: CharacterAttributes) => setCharacter(prev => ({ ...prev, attributes: newAttributes })), []);
   const handleSkillPointsChange = useCallback((skillId: string, points: number) => setCharacter(prev => ({ ...prev, skills: { ...prev.skills, [skillId]: points } })), []);
   const handlePowersChange = useCallback((newPowers: Power[]) => setCharacter(prev => ({ ...prev, powers: newPowers })), []);
@@ -163,49 +186,90 @@ const CharacterCreatorPage: React.FC = () => {
   const handleShadowPointsChange = useCallback((points: number) => setCharacter(prev => ({ ...prev, shadowPoints: points })), []);
   const handleBondsChange = useCallback((newBonds: Bond[]) => setCharacter(prev => ({ ...prev, bonds: newBonds })), []);
   const handleNarrativeUpdate = useCallback((field: string, value: any) => setCharacter(prev => ({ ...prev, [field]: value })), []);
+
+  const handleStatusEffectsChange = useCallback((effects: string[]) => setCharacter(prev => ({ ...prev, statusEffects: effects })), []);
+  const handleNegativeTraitsChange = useCallback((traits: string) => setCharacter(prev => ({ ...prev, negativeTraits: traits })), []);
+
   const handleCharacterGenerated = useCallback((data: AIGeneratedCharacterData) => {
-    const { characterSheet, customSkills: aiCustomSkills, customPowerTags: aiCustomTags } = data;
-    const fullSheet = { ...initialCharacterSheet, ...characterSheet };
-    setCharacter(fullSheet);
+    const { characterSheet: aiSheet, customSkills: aiCustomSkills, customPowerTags: aiCustomTags } = data;
+
+    // 创建一个完整的、符合类型的基底角色卡深拷贝
+    const baseSheet: CharacterSheet = JSON.parse(JSON.stringify(initialCharacterSheet));
+
+    // 定义一个辅助函数来验证 faction 字段
+    const validateFaction = (faction: any): CharacterInfo['faction'] => {
+        const validFactions: CharacterInfo['faction'][] = ['魔法国度', '爪痕', '黑烬黎明', '其他', ''];
+        if (validFactions.includes(faction)) {
+            return faction;
+        }
+        return ''; // 如果AI返回了无效的阵营，则重置为空字符串
+    };
+
+    // 1. 先安全地合并 info 对象，并处理 faction 的类型
+    const mergedInfo: CharacterInfo = {
+        ...baseSheet.info,
+        ...(aiSheet.info || {}),
+        faction: validateFaction(aiSheet.info?.faction),
+    };
+
+    // 2. 构建最终的、类型安全的角色卡对象
+    const mergedSheet: CharacterSheet = {
+      ...baseSheet,
+      ...aiSheet,
+      info: mergedInfo, // 使用上面已验证过的 info 对象
+      attributes: { ...baseSheet.attributes, ...(aiSheet.attributes || {}) },
+      skills: { ...baseSheet.skills, ...(aiSheet.skills || {}) },
+      magicConstruct: { ...baseSheet.magicConstruct, ...(aiSheet.magicConstruct || {}) },
+      wonderlandRule: { ...baseSheet.wonderlandRule, ...(aiSheet.wonderlandRule || {}) },
+      blooming: { ...baseSheet.blooming, ...(aiSheet.blooming || {}) },
+      gemScepter: { ...baseSheet.gemScepter, ...(aiSheet.gemScepter || {}) },
+      powers: aiSheet.powers || baseSheet.powers,
+      bonds: aiSheet.bonds || baseSheet.bonds,
+    };
+
+    setCharacter(mergedSheet);
     setCustomSkills((aiCustomSkills || []).map(skill => ({ ...skill, points: 0 })));
     setCustomEffectTags((aiCustomTags || []).filter(tag => tag.type === 'effect'));
     setCustomModifierTags((aiCustomTags || []).filter(tag => tag.type === 'modifier'));
     document.getElementById('step-1-info')?.scrollIntoView({ behavior: 'smooth' });
   }, []);
+
+  // 保存图片后的回调，用于在移动端显示预览模态框
   const handleSaveImageCallback = useCallback((imageUrl: string, width: number, height: number) => {
     setSavedImageUrl(imageUrl);
     setSavedImageSize({ width, height });
     setShowImageModal(true);
   }, []);
 
+  // --- 文件与数据导入逻辑 ---
+
+  // 核心处理函数：解析JSON字符串并加载到状态中
   const processAndLoadJson = (jsonString: string) => {
     try {
       const importedData = JSON.parse(jsonString);
-      
-      // 兼容两种JSON结构：一种是纯角色卡，另一种是包含元数据的导出文件
-      const dataToParse = importedData.characterSheet ? importedData.characterSheet : importedData;
-      
+      // 兼容两种JSON结构：一种是完整的导出对象，一种是纯角色卡对象
+      const dataToParse = importedData.characterSheet || importedData;
+
       const newCharacterSheet: CharacterSheet = {
+        ...initialCharacterSheet,
+        ...dataToParse,
         info: { ...initialCharacterSheet.info, ...(dataToParse.info || {}) },
         attributes: { ...initialCharacterSheet.attributes, ...(dataToParse.attributes || {}) },
         skills: { ...initialCharacterSheet.skills, ...(dataToParse.skills || {}) },
+        // 重新生成能力的id，避免React key冲突
         powers: (dataToParse.powers || []).map((p: any) => ({
           ...p,
-          id: Date.now() + Math.random(), // 重新生成唯一的临时ID
+          id: Date.now() + Math.random(),
         })),
       };
-      
-      setCharacter(newCharacterSheet);
 
-      // 【关键修复】从导入数据中正确加载自定义技能和能力标签
+      setCharacter(newCharacterSheet);
       setCustomSkills(importedData.customSkills || []);
       const customPowerTags = importedData.customPowerTags || [];
-      // 根据 'type' 字段将标签分类回两个不同的状态
       setCustomEffectTags(customPowerTags.filter((t: any) => t.type === 'effect'));
       setCustomModifierTags(customPowerTags.filter((t: any) => t.type === 'modifier'));
-      
+
       setMessage({ type: 'success', text: '角色数据加载成功！' });
-      // 滚动到第一个编辑面板，方便用户查看
       document.getElementById('step-1-info')?.scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
       setMessage({ type: 'error', text: '加载失败：无效的JSON格式。' });
@@ -213,7 +277,7 @@ const CharacterCreatorPage: React.FC = () => {
     }
   };
 
-  // 【新增】处理文件上传
+  // 处理文件上传
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -233,7 +297,7 @@ const CharacterCreatorPage: React.FC = () => {
     }
   };
 
-  // 【新增】处理粘贴加载
+  // 处理粘贴文本加载
   const handlePasteAndLoad = () => {
     if (!pastedJson.trim()) {
       setMessage({ type: 'error', text: '粘贴内容不能为空。' });
@@ -242,16 +306,15 @@ const CharacterCreatorPage: React.FC = () => {
     processAndLoadJson(pastedJson);
   };
 
+  // --- 渲染 (JSX) ---
   return (
     <>
       <Head>
         <title>角色创建器 - 魔法少女竞技场TRPG</title>
         <meta name="description" content="创建你的专属魔法少女角色" />
       </Head>
-
       <div className="magic-background-white min-h-screen py-10">
         <div className="container mx-auto px-4 max-w-4xl">
-          
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-800">交互式角色创建器</h1>
             <p className="text-gray-600 mt-2">
@@ -260,8 +323,7 @@ const CharacterCreatorPage: React.FC = () => {
           </div>
 
           <div className="space-y-8">
-            
-            {/* 导入功能区 */}
+            {/* 导入/加载功能区 */}
             <section id="import-character">
               <div className="p-6 bg-gray-100 border border-gray-200 rounded-xl">
                 <h3 className="text-xl font-bold text-gray-800 mb-4">加载已有角色</h3>
@@ -300,106 +362,54 @@ const CharacterCreatorPage: React.FC = () => {
                 </div>
               </div>
             </section>
-            {/* 等级选择 */}
-            <section>
-              <div className="p-6 bg-white rounded-xl shadow-md space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="powerLevel" className="input-label">选择初始力量层级</label>
-                        <select
-                            id="powerLevel"
-                            value={powerLevel}
-                            onChange={(e) => setPowerLevel(e.target.value as PowerLevel)}
-                            className="input-field"
-                        >
-                            {Object.entries(levelingData.levels).map(([key, value]) => (
-                                <option key={key} value={key}>{value.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-              </div>
-            </section>
-            
+
+            {/* 力量层级选择 */}
+            <section><div className="p-6 bg-white rounded-xl shadow-md space-y-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label htmlFor="powerLevel" className="input-label">选择初始力量层级</label><select id="powerLevel" value={powerLevel} onChange={(e) => setPowerLevel(e.target.value as PowerLevel)} className="input-field">{Object.entries(levelingData.levels).map(([key, value]) => (<option key={key} value={key}>{value.name}</option>))}</select></div></div></div></section>
+
+            {/* AI 辅助创建 */}
             <section><AICharacterCreatorPanel onCharacterGenerated={handleCharacterGenerated} isGenerating={isGenerating} setIsGenerating={setIsGenerating} /></section>
-            
-            {/* 核心属性 */}
-            <section>
-              <AICharacterCreatorPanel onCharacterGenerated={handleCharacterGenerated} isGenerating={isGenerating} setIsGenerating={setIsGenerating} />
-            </section>
+
+            {/* 角色创建步骤 */}
             <section id="step-1-info">
               <CharacterInfoPanel info={character.info} onInfoChange={handleInfoChange} />
             </section>
-
             <section id="step-2-attributes">
-              <AttributesPanel
-                attributes={character.attributes}
-                onAttributesChange={handleAttributesChange}
-                totalPoints={totalAttributePoints}
-                spentPoints={spentAttributePoints}
-              />
+              <AttributesPanel attributes={character.attributes} onAttributesChange={handleAttributesChange} totalPoints={totalAttributePoints} spentPoints={spentAttributePoints} />
             </section>
-            
-            {/* 衍生与动态数值 */}
             <section>
               <DerivedStatsPanel attributes={character.attributes} />
             </section>
             <section>
               <VitalsPanel hp={character.hp} mp={character.mp} radiance={character.radiance} shadowPoints={character.shadowPoints} onVitalsChange={handleVitalsChange} onShadowPointsChange={handleShadowPointsChange} />
             </section>
-            
-            {/* 技能、羁绊、能力 */}
+            <section id="step-traits-status">
+              <StatusAndTraitsPanel statusEffects={character.statusEffects} negativeTraits={character.negativeTraits} onStatusEffectsChange={handleStatusEffectsChange} onNegativeTraitsChange={handleNegativeTraitsChange} />
+            </section>
             <section id="step-3-skills">
-              <SkillAllocatorPanel
-                attributes={character.attributes}
-                skillPoints={character.skills}
-                onSkillPointsChange={handleSkillPointsChange}
-                customSkills={customSkills}
-                onCustomSkillsChange={setCustomSkills}
-                totalPoints={totalSkillPoints}
-                spentPoints={spentSkillPoints}
-              />
+              <SkillAllocatorPanel attributes={character.attributes} skillPoints={character.skills} onSkillPointsChange={handleSkillPointsChange} customSkills={customSkills} onCustomSkillsChange={setCustomSkills} totalPoints={totalSkillPoints} spentPoints={spentSkillPoints} />
             </section>
             <section id="step-4-bonds">
               <BondsPanel bonds={character.bonds} onBondsChange={handleBondsChange} bondBudget={bondBudget} />
             </section>
-            <section id="step-5-powers">
-              <PowerCreatorPanel
-                powers={character.powers}
-                onPowersChange={handlePowersChange}
-                customEffectTags={customEffectTags}
-                onCustomEffectTagsChange={setCustomEffectTags}
-                customModifierTags={customModifierTags}
-                onCustomModifierTagsChange={setCustomModifierTags}
-                totalPcp={totalPcp}
-                spentPcp={spentPcpPoints}
-              />
+            <section id="step-5-narrative">
+              <NarrativePanel magicConstruct={character.magicConstruct} wonderlandRule={character.wonderlandRule} blooming={character.blooming} gemScepter={character.gemScepter} onUpdate={handleNarrativeUpdate} unlockedAbilities={unlocks} />
             </section>
             <section id="step-6-abilities">
               <PowerCreatorPanel powers={character.powers} onPowersChange={handlePowersChange} customEffectTags={customEffectTags} onCustomEffectTagsChange={setCustomEffectTags} customModifierTags={customModifierTags} onCustomModifierTagsChange={setCustomModifierTags} totalPcp={totalPcp} spentPcp={spentPcpPoints} />
             </section>
-
-            {/* 预览与导出 */}
             <section id="step-7-preview">
               <CharacterSheetDisplay characterSheet={character} powerLevel={powerLevel} onSaveImage={handleSaveImageCallback} spentAttributePoints={spentAttributePoints} spentSkillPoints={spentSkillPoints} spentPcpPoints={spentPcpPoints} customSkills={customSkills} customEffectTags={customEffectTags} customModifierTags={customModifierTags} />
             </section>
             <section id="step-8-export">
               <ExportPanel characterSheet={character} customSkills={customSkills} customEffectTags={customEffectTags} customModifierTags={customModifierTags} spentAttributePoints={spentAttributePoints} spentSkillPoints={spentSkillPoints} spentPcpPoints={spentPcpPoints} />
             </section>
-
-          </div>
-          
-          <div className="mt-12 text-center">
-            <Link href="/" className="text-purple-600 hover:underline">
-              &larr; 返回首页
-            </Link>
           </div>
 
+          <div className="mt-12 text-center"><Link href="/" className="text-purple-600 hover:underline">&larr; 返回首页</Link></div>
           <Footer />
         </div>
 
-        {/* --- 图片模态框 --- */}
-        {/* 图片模态框 */}
+        {/* 角色卡图片预览模态框 */}
         {showImageModal && savedImageUrl && (
           <div
             role="button"

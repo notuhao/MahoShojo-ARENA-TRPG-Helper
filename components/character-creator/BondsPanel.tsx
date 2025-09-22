@@ -90,8 +90,9 @@ const BondsPanel: React.FC<BondsPanelProps> = ({ bonds, onBondsChange, bondBudge
             />
 
             <div>
-              <label className="text-xs font-medium text-gray-600">光辉影响 (每次幕间)</label>
+              <label htmlFor={`bond-radiance-${bond.id}`} className="text-xs font-medium text-gray-600">光辉影响 (每次幕间)</label>
               <input
+                id={`bond-radiance-${bond.id}`}
                 type="number"
                 value={bond.radianceImpact}
                 onChange={(e) => updateBond(index, { radianceImpact: parseInt(e.target.value, 10) || 0 })}

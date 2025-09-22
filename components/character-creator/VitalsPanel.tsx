@@ -27,11 +27,14 @@ const VitalInput: React.FC<VitalInputProps> = ({ label, stat, onCurrentChange, c
     onCurrentChange(Math.min(value, stat.max));
   };
   
+  const inputId = `vital-input-${label.replace(/\s/g, '-')}`;
+
   return (
-    <div className={`p-3 rounded-lg border ${colorClass}-200 bg-${colorClass}-50`}>
-      <label className={`text-sm font-medium text-${colorClass}-800`}>{label}</label>
+    <div className={`p-3 rounded-lg border border-${colorClass}-200 bg-${colorClass}-50`}>
+      <label htmlFor={inputId} className={`text-sm font-medium text-${colorClass}-800`}>{label}</label>
       <div className="flex items-center gap-2 mt-1">
         <input
+          id={inputId}
           type="number"
           value={stat.current}
           onChange={handleCurrentChange}
@@ -90,9 +93,10 @@ const VitalsPanel: React.FC<VitalsPanelProps> = ({
           colorClass="yellow"
         />
         <div className="p-3 rounded-lg border border-gray-300 bg-gray-100">
-          <label className="text-sm font-medium text-gray-800">阴影点数</label>
+          <label htmlFor="shadow-points-input" className="text-sm font-medium text-gray-800">阴影点数</label>
           <div className="flex items-center mt-1">
             <input
+              id="shadow-points-input"
               type="number"
               value={shadowPoints}
               onChange={handleShadowPointsChange}

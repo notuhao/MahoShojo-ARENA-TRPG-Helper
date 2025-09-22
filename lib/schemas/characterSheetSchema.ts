@@ -5,17 +5,26 @@ import { z } from 'zod';
 /**
  * @fileoverview 定义了用于AI生成的角色卡Zod Schema (V2)。
  * @description
- * [新增] 引入了一个顶层的 `aiGeneratedCharacterSchema` 来包装标准角色卡。
- * 这个新结构允许AI在生成角色数据的同时，返回任何它所创造的自定义技能和能力标签的定义。
- * 这使得AI可以更自由地创作，同时保持了数据的结构化和可用性。
+ * [v0.1.1 重构]
+ * - Schema已完全重构，以匹配`v0.1.1 SRS`定义的完整`CharacterSheet`类型。
+ * - 新增了所有叙事模块（魔装、奇境、繁开、宝石权杖）和结构化羁绊的Schema。
+ * - 引入了一个顶层的 `aiGeneratedCharacterSchema` 来包装标准角色卡，允许AI同时返回它所创造的任何自定义技能和能力标签。
  */
 
-// 角色叙事信息 Schema
+// 动态数值 (HP, MP, 光辉)
+const dynamicStatSchema = z.object({
+  current: z.number().describe('当前值'),
+  max: z.number().describe('最大值'),
+});
+
+// 角色叙事信息
 const characterInfoSchema = z.object({
   realName: z.string().describe('角色的真实姓名'),
   codename: z.string().describe('角色作为魔法少女的代号，通常是一种花名'),
+  appearance: z.string().describe('角色的魔法少女形态外观描述，包括服装、配饰、主色调和整体风格'),
+  faction: z.string().describe('角色所属的阵营 (例如: 魔法国度, 爪痕, 黑烬黎明, 或其他)'),
+  customFaction: z.string().optional().describe('如果阵营是“其他”，在这里填写自定义阵营名称'),
   belief: z.string().describe('她的信念与愿望，这是她战斗的理由'),
-  bonds: z.string().describe('对她最重要的人或事物，即她的羁绊'),
   background: z.string().describe('关于她过去的简短背景故事'),
 });
 
@@ -28,41 +37,84 @@ const characterAttributesSchema = z.object({
   WILL: z.number().min(10).max(80).describe('意志 (WILL)'),
   PER: z.number().min(10).max(80).describe('感知 (PER)'),
   CHM: z.number().min(10).max(80).describe('魅力 (CHM)'),
-}).describe('角色的7项核心属性，总和必须严格等于280点');
+}).describe('角色的7项核心属性');
 
-// 技能点 Schema
-// 由于技能ID是固定的，我们仍然可以动态生成以获得更好的类型提示和校验
+// 技能点
 const SKILL_IDS = [
   'brawl', 'firearms', 'throw', 'dodge', 'channel', 'ward', 'mysticLore',
   'persuade', 'intimidate', 'empathy', 'perform', 'science', 'medicine',
   'investigate', 'stealth', 'athletics', 'sleightOfHand'
 ];
-
 const skillPointsSchema = z.object(
   SKILL_IDS.reduce((acc, id) => {
     acc[id] = z.number().min(0).describe(`${id} 技能上投入的点数`);
     return acc;
   }, {} as Record<string, z.ZodNumber>)
-).describe('角色的技能点分配，所有技能点数总和必须严格等于150点');
+).describe('角色的技能点分配');
 
-// 单个能力构筑 Schema
+// 单个能力
 const powerSchema = z.object({
   id: z.number().describe('一个临时的唯一ID，用于React key，使用时间戳即可'),
   name: z.string().describe('这个能力的自定义名称'),
-  effectTagId: z.string().describe('能力的核心效果标签ID (例如: damage, heal)'),
+  effectTagId: z.string().describe('能力的核心效果标签ID'),
   rank: z.number().min(1).describe('如果效果可叠加，此为阶数，否则为1'),
-  modifierTagIds: z.array(z.string()).describe('附加的修正标签ID数组 (例如: range_long, elemental_fire)'),
+  modifierTagIds: z.array(z.string()).describe('附加的修正标签ID数组'),
 });
 
-// 标准角色卡 Schema
+// 魔装
+const magicConstructSchema = z.object({
+  name: z.string().describe('魔装的名称'),
+  description: z.string().describe('魔装的形态与基础能力描述'),
+});
+
+// 奇境
+const wonderlandRuleSchema = z.object({
+  description: z.string().describe('奇境展开后的独特规则描述'),
+});
+
+// 繁开能力
+const bloomingAbilitySchema = z.object({
+  name: z.string().describe('繁开状态下的一个具体能力的名称'),
+  description: z.string().describe('该能力的描述'),
+});
+
+// 繁开
+const bloomingSchema = z.object({
+  description: z.string().describe('繁开状态下的形态变化描述'),
+  abilities: z.array(bloomingAbilitySchema).describe('繁开状态解锁的能力列表'),
+});
+
+// 宝石权杖
+const gemScepterSchema = z.object({
+  name: z.string().describe('宝石权杖的名称'),
+  ability: z.string().describe('宝石权杖的独特能力描述'),
+});
+
+// 羁绊
+const bondSchema = z.object({
+  id: z.number().describe('一个临时的唯一ID，用于React key，使用时间戳即可'),
+  target: z.string().describe('羁绊指向的对象或事物'),
+  description: z.string().describe('这段关系对角色意味着什么'),
+  statusAndNotes: z.string().describe('记录羁绊的动态变化，如“已加深”或“被封印”'),
+  radianceImpact: z.number().describe('每次幕间休息时，此羁绊对光辉值的影响（整数，通常为1~2）'),
+});
+
+
+// 组装成完整的角色卡 Schema
 const characterSheetSchema = z.object({
   info: characterInfoSchema,
   attributes: characterAttributesSchema,
   skills: skillPointsSchema,
-  powers: z.array(powerSchema).describe('角色的能力列表，总PCP花费必须严格等于20点'),
+  powers: z.array(powerSchema).describe('角色的能力列表'),
+  magicConstruct: magicConstructSchema,
+  wonderlandRule: wonderlandRuleSchema,
+  blooming: bloomingSchema,
+  gemScepter: gemScepterSchema,
+  bonds: z.array(bondSchema),
+  // 注意：hp, mp, radiance, shadowPoints等衍生/动态值由前端根据属性计算或在UI中修改，不要求AI生成
 });
 
-// 【新增】自定义技能的 Schema 定义
+// 自定义技能的 Schema 定义
 const customSkillSchema = z.object({
     id: z.string().describe("自定义技能的唯一英文ID，例如 'custom_mech_repair'"),
     name: z.string().describe("自定义技能的名称，例如 '魔导机械维修'"),
@@ -70,7 +122,7 @@ const customSkillSchema = z.object({
     base: z.number().min(0).describe("该技能的基础成功率（不含投入点数）"),
 });
 
-// 【新增】自定义能力标签的 Schema 定义
+// 自定义能力标签的 Schema 定义
 const customPowerTagSchema = z.object({
     id: z.string().describe("自定义标签的唯一英文ID，例如 'custom_mental_damage'"),
     name: z.string().describe("自定义标签的显示名称，例如 '[精神伤害]'"),
@@ -80,7 +132,7 @@ const customPowerTagSchema = z.object({
     description: z.string().describe("对该标签效果的简短描述"),
 });
 
-// 【新增】最终用于AI生成的顶层 Schema
+// 最终用于AI生成的顶层 Schema
 export const aiGeneratedCharacterSchema = z.object({
   characterSheet: characterSheetSchema.describe("包含角色所有核心数据的对象"),
   customSkills: z.array(customSkillSchema).optional().describe("AI创造的任何自定义技能的定义列表"),

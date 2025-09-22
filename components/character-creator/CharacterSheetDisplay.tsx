@@ -13,9 +13,8 @@ import levelingData from '../../lib/trpg/data/leveling.json';
 /**
  * @fileoverview 角色卡可视化展示组件
  * @description
- * - [修正] 修复了内部辅助函数 renderNarrativeModule 的类型错误和不安全的 eval 调用。
- * - 全面重构以展示v0.1.1版本的所有新增字段。
- * - 能够根据传入的角色等级（powerLevel）和等级数据，动态显示解锁的能力模块。
+ * - [布局优化] 将核心数值（HP/MP等）的布局从 4 列调整为 2x2 的 2 列网格，使其更加清晰美观。
+ * - [样式优化] 优化了第二页叙事模块的视觉分隔，使其更易读。
  */
 
 interface CharacterSheetDisplayProps {
@@ -25,7 +24,6 @@ interface CharacterSheetDisplayProps {
   spentAttributePoints: number;
   spentSkillPoints: number;
   spentPcpPoints: number;
-  // 【新增】接收自定义内容
   customSkills: CustomSkill[];
   customEffectTags: EffectTag[];
   customModifierTags: ModifierTag[];
@@ -38,7 +36,6 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
   spentAttributePoints,
   spentSkillPoints,
   spentPcpPoints,
-  // 【新增】解构自定义内容的props
   customSkills,
   customEffectTags,
   customModifierTags
@@ -48,7 +45,7 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
   const { info, attributes, skills, powers, hp, mp, radiance, shadowPoints, magicConstruct, wonderlandRule, blooming, gemScepter, bonds } = characterSheet;
   
   const levelConfig = levelingData.levels[powerLevel];
-  const { attributePoints: ATTR_LIMIT, skillPoints: SKILL_LIMIT, pcp: PCP_LIMIT, unlocks } = levelConfig;
+  const unlocks: string[] = levelConfig.unlocks;
 
   // 【核心修复】使用 useMemo 合并预设与自定义标签，以供后续查找
   const allEffectTags = useMemo(() => [...EFFECT_TAGS, ...customEffectTags], [customEffectTags]);
@@ -68,31 +65,32 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
   const handleSaveImage = async () => {
     if (!cardRef.current) return;
     try {
-        const buttonsContainer = cardRef.current.querySelector('.buttons-container') as HTMLElement;
-        const logoPlaceholder = cardRef.current.querySelector('.logo-placeholder') as HTMLElement;
-        if (buttonsContainer) buttonsContainer.style.display = 'none';
-        if (logoPlaceholder) logoPlaceholder.style.display = 'flex';
-  
-        const result = await snapdom(cardRef.current, { scale: 1.5 });
-  
-        if (buttonsContainer) buttonsContainer.style.display = 'flex';
-        if (logoPlaceholder) logoPlaceholder.style.display = 'none';
-  
-        const imgElement = await result.toPng();
-        const imageUrl = imgElement.src;
-  
-        const isMobileDevice = /Mobi/i.test(window.navigator.userAgent);
-        if (isMobileDevice) {
-            onSaveImage(imageUrl, imgElement.naturalWidth, imgElement.naturalHeight);
-        } else {
-            const link = document.createElement('a');
-            link.href = imageUrl;
-            const fileName = info.codename || info.realName || '魔法少女';
-            link.download = `角色卡_${fileName}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+      const buttonsContainer = cardRef.current.querySelector('.buttons-container') as HTMLElement;
+      const logoPlaceholder = cardRef.current.querySelector('.logo-placeholder') as HTMLElement;
+      if (buttonsContainer) buttonsContainer.style.display = 'none';
+      if (logoPlaceholder) logoPlaceholder.style.display = 'flex';
+
+      const result = await snapdom(cardRef.current, { scale: 1.5 });
+
+      if (buttonsContainer) buttonsContainer.style.display = 'flex';
+      if (logoPlaceholder) logoPlaceholder.style.display = 'none';
+
+      const imgElement = await result.toPng();
+      const imageUrl = imgElement.src;
+
+      const isMobileDevice = /Mobi/i.test(window.navigator.userAgent);
+      if (isMobileDevice) {
+        onSaveImage(imageUrl, imgElement.naturalWidth, imgElement.naturalHeight);
+      } else {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        const fileName = info.codename || info.realName || '魔法少女';
+        link.download = `角色卡_${fileName}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(imageUrl);
+      }
     } catch (err) {
       alert('生成图片失败，请重试');
       console.error("图片生成失败:", err);
@@ -113,28 +111,24 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
     content: React.ReactNode,
     dataObject: any
   ) => {
-    if (!unlocks.includes(moduleKey as any)) return null;
-
-    // 检查数据对象是否有实际内容
     const hasContent = (obj: any): boolean => {
       if (typeof obj === 'string') return obj.trim() !== '';
       if (typeof obj === 'object' && obj !== null) {
-        if (Array.isArray(obj)) return obj.length > 0;
+        if (Array.isArray(obj)) return obj.length > 0 && obj.some(item => hasContent(item));
         return Object.values(obj).some(v => hasContent(v));
       }
       return false;
-    }
+    };
 
-    // 如果未解锁但有内容，不显示模块
-    if (!unlocks.includes(moduleKey as any) && hasContent(dataObject)) {
-        return null;
+    if (!unlocks.includes(moduleKey) && !hasContent(dataObject)) {
+      return null;
     }
 
     return (
-        <div className="border-b pb-2 mb-2">
-            <h4 className="font-bold text-sm">{title}</h4>
-            {content}
-        </div>
+      <div className="bg-gray-50/50 p-2 rounded-md">
+        <h4 className="font-bold text-sm">{title}{!unlocks.includes(moduleKey) && hasContent(dataObject) && <span className="text-red-500 text-xs ml-2">(不可用)</span>}</h4>
+        {content}
+      </div>
     );
   };
 
@@ -149,8 +143,8 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
             <p className="text-sm text-gray-500">{info.realName || '[真名]'}</p>
             <p className="text-xs text-purple-700 font-semibold mt-1">{levelConfig.name}</p>
           </div>
-          
-          <div className="grid grid-cols-4 gap-2 text-center my-2 text-xs">
+
+          <div className="grid grid-cols-2 gap-4 text-center my-2 text-xs">
             <div className="bg-red-50 p-2 rounded"><p className="text-red-700">HP</p><p className="font-bold text-base">{hp.current}/{hp.max}</p></div>
             <div className="bg-blue-50 p-2 rounded"><p className="text-blue-700">MP</p><p className="font-bold text-base">{mp.current}/{mp.max}</p></div>
             <div className="bg-yellow-50 p-2 rounded"><p className="text-yellow-700">光辉</p><p className="font-bold text-base">{radiance.current}/{radiance.max}</p></div>
@@ -164,8 +158,8 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
             <div className="flex justify-between border-b"><span className="font-semibold text-gray-600">伤害加值</span><span>{db}</span></div>
             <div className="flex justify-between border-b"><span className="font-semibold text-gray-600">体格</span><span>{build}</span></div>
           </div>
-          <div className={`text-xs text-center mt-1 pt-1 border-t ${spentAttributePoints > ATTR_LIMIT ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
-            属性点: {spentAttributePoints}/{ATTR_LIMIT}
+          <div className={`text-xs text-center mt-1 pt-1 border-t ${spentAttributePoints > levelConfig.attributePoints ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+            属性点: {spentAttributePoints}/{levelConfig.attributePoints}
           </div>
 
           <div className="text-xs mt-2 flex-grow">
@@ -186,39 +180,55 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
             </div>
           </div>
 
-          <div className={`text-xs text-center mt-auto pt-1 border-t ${spentSkillPoints > SKILL_LIMIT ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
-             技能点: {spentSkillPoints}/{SKILL_LIMIT}
+          <div className={`text-xs text-center mt-auto pt-1 border-t ${spentSkillPoints > levelConfig.skillPoints ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+            技能点: {spentSkillPoints}/{levelConfig.skillPoints}
           </div>
         </div>
 
+        <div className="text-xs mt-2 pt-2 border-t">
+          {characterSheet.statusEffects.length > 0 && (
+            <div className="mb-1">
+              <span className="font-bold">状态: </span>
+              <span>{characterSheet.statusEffects.join(', ')}</span>
+            </div>
+          )}
+          {characterSheet.negativeTraits && (
+            <div>
+              <span className="font-bold">负面特质: </span>
+              <span>{characterSheet.negativeTraits}</span>
+            </div>
+          )}
+        </div>
+
         {/* ==================== 第二页：内心与故事 ==================== */}
-        <div className="bg-white p-4 rounded shadow-sm border flex flex-col">
-          <div className="border-b pb-2 mb-2">
+        <div className="bg-white p-4 rounded shadow-sm border flex flex-col space-y-2">
+          <div className="border-b pb-2">
             <h4 className="font-bold text-sm">信念</h4>
             <p className="text-xs text-gray-600 italic">“{info.belief || '...'}”</p>
           </div>
-          
+
           {renderNarrativeModule('magicConstruct', `魔装: ${magicConstruct.name || '未命名'}`, (
             <p className="text-xs text-gray-600 whitespace-pre-wrap">{magicConstruct.description || '...'}</p>
           ), magicConstruct)}
 
-          {renderNarrativeModule('magicConstruct', '能力', (
-             <div className="space-y-2 mt-1">
-                {powers.length > 0 ? powers.map(power => {
-                    const effect = allEffectTags.find(e => e.id === power.effectTagId);
-                    const modifiers = allModifierTags.filter(m => power.modifierTagIds.includes(m.id));
-                    return (
-                    <div key={power.id} className="text-xs">
-                        <p className="font-semibold text-purple-700">{power.name || '[未命名能力]'}</p>
-                        <p className="text-gray-600 pl-2">效果: {effect?.name || '[未知]'}{effect?.isScalable ? `(x${power.rank})` : ''}</p>
-                        {modifiers.length > 0 && <p className="text-gray-600 pl-2">修正: {modifiers.map(m => m.name).join(', ')}</p>}
-                    </div>
-                    )
-                }) : <p className="text-xs text-gray-400 italic">暂未设计能力</p>}
-             </div>
-          ), powers)}
-          <div className={`text-xs text-right -mt-2 mb-2 ${spentPcpPoints > PCP_LIMIT ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
-             PCP: {spentPcpPoints}/{PCP_LIMIT}
+          <div className="bg-gray-50/50 p-2 rounded-md">
+            <h4 className="font-bold text-sm">能力</h4>
+            <div className="space-y-2 mt-1">
+              {powers.length > 0 ? powers.map(power => {
+                const effect = allEffectTags.find(e => e.id === power.effectTagId);
+                const modifiers = allModifierTags.filter(m => power.modifierTagIds.includes(m.id));
+                return (
+                  <div key={power.id} className="text-xs">
+                    <p className="font-semibold text-purple-700">{power.name || '[未命名能力]'}</p>
+                    <p className="text-gray-600 pl-2">效果: {effect?.name || '[未知]'}{effect?.isScalable ? `(x${power.rank})` : ''}</p>
+                    {modifiers.length > 0 && <p className="text-gray-600 pl-2">修正: {modifiers.map(m => m.name).join(', ')}</p>}
+                  </div>
+                )
+              }) : <p className="text-xs text-gray-400 italic">暂未设计能力</p>}
+            </div>
+            <div className={`text-xs text-right mt-1 ${spentPcpPoints > levelConfig.pcp ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
+              PCP: {spentPcpPoints}/{levelConfig.pcp}
+            </div>
           </div>
           
           {renderNarrativeModule('wonderlandRule', '奇境', (
@@ -227,25 +237,27 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
 
           {renderNarrativeModule('blooming', '繁开', (
             <>
-                <p className="text-xs text-gray-600 whitespace-pre-wrap">{blooming.description || '...'}</p>
-                {blooming.abilities.length > 0 && <div className="mt-1 space-y-1">
-                    {blooming.abilities.map((ab, i) => (<p key={i} className="text-xs text-gray-600 pl-2"><span className="font-semibold">{ab.name}:</span> {ab.description}</p>))}
-                </div>}
+              <p className="text-xs text-gray-600 whitespace-pre-wrap">{blooming.description || '...'}</p>
+              {blooming.abilities.length > 0 && <div className="mt-1 space-y-1">
+                {blooming.abilities.map((ab, i) => (<p key={i} className="text-xs text-gray-600 pl-2"><span className="font-semibold">{ab.name}:</span> {ab.description}</p>))}
+              </div>}
             </>
           ), blooming)}
 
           {renderNarrativeModule('gemScepter', `宝石权杖: ${gemScepter.name || '未命名'}`, (
             <p className="text-xs text-gray-600 whitespace-pre-wrap">{gemScepter.ability || '...'}</p>
           ), gemScepter)}
-          
-          <div className="flex-grow mt-2">
-            <h4 className="font-bold text-sm">羁绊</h4>
-            {bonds.length > 0 ? bonds.map(bond => (
+
+          <div className="flex-grow">
+            <div className="bg-gray-50/50 p-2 rounded-md">
+              <h4 className="font-bold text-sm">羁绊</h4>
+              {bonds.length > 0 ? bonds.map(bond => (
                 <div key={bond.id} className="text-xs mt-1">
-                    <p className="font-semibold text-gray-800">{bond.target} <span className="font-normal text-gray-500">({bond.radianceImpact > 0 ? '+' : ''}{bond.radianceImpact}光辉)</span></p>
-                    <p className="text-gray-600 pl-2">{bond.description}</p>
+                  <p className="font-semibold text-gray-800">{bond.target} <span className="font-normal text-gray-500">({bond.radianceImpact > 0 ? '+' : ''}{bond.radianceImpact}光辉)</span></p>
+                  <p className="text-gray-600 pl-2">{bond.description}</p>
                 </div>
-            )) : <p className="text-xs text-gray-400 italic">暂无羁绊</p>}
+              )) : <p className="text-xs text-gray-400 italic">暂无羁绊</p>}
+            </div>
           </div>
 
         </div>
