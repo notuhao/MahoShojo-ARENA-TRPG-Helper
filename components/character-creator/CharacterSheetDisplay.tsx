@@ -203,7 +203,7 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
         <div className="bg-white p-4 rounded shadow-sm border flex flex-col space-y-2">
           <div className="border-b pb-2">
             <h4 className="font-bold text-sm">信念</h4>
-            <p className="text-xs text-gray-600 italic">“{info.belief || '...'}”</p>
+            <p className="text-xs text-gray-600 italic">{info.belief || '...'}</p>
           </div>
 
           {renderNarrativeModule('magicConstruct', `魔装: ${magicConstruct.name || '未命名'}`, (
@@ -219,6 +219,7 @@ const CharacterSheetDisplay: React.FC<CharacterSheetDisplayProps> = ({
                 return (
                   <div key={power.id} className="text-xs">
                     <p className="font-semibold text-purple-700">{power.name || '[未命名能力]'}</p>
+                    {power.description && <p className="text-gray-600 pl-2 italic">{power.description}</p>}
                     <p className="text-gray-600 pl-2">效果: {effect?.name || '[未知]'}{effect?.isScalable ? `(x${power.rank})` : ''}</p>
                     {modifiers.length > 0 && <p className="text-gray-600 pl-2">修正: {modifiers.map(m => m.name).join(', ')}</p>}
                   </div>
