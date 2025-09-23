@@ -1,6 +1,7 @@
 // lib/schemas/characterSheetSchema.ts
 
 import { z } from 'zod';
+import levelingData from '../trpg/data/leveling.json';
 
 /**
  * @fileoverview 定义了用于AI生成的角色卡Zod Schema (V2)。

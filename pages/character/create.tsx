@@ -67,6 +67,7 @@ export interface Bond { id: number; target: string; description: string; statusA
 export interface DynamicStat { current: number; max: number; }
 // 最终完整的角色卡数据结构
 export interface CharacterSheet {
+  powerLevel: PowerLevel;
   info: CharacterInfo;
   attributes: CharacterAttributes;
   skills: SkillPoints;
@@ -92,6 +93,7 @@ const initialSkillPoints: SkillPoints = SKILLS.reduce((acc, skill) => { acc[skil
 const initialInfo: CharacterInfo = { realName: '', codename: '', belief: '', background: '', appearance: '', faction: '', customFaction: '' };
 
 const initialCharacterSheet: CharacterSheet = {
+  powerLevel: 'seed',
   info: initialInfo,
   attributes: initialAttributes,
   skills: initialSkillPoints,
@@ -305,6 +307,20 @@ const CharacterCreatorPage: React.FC = () => {
       };
 
       setCharacter(newCharacterSheet);
+
+      // 从导入的数据中读取 powerLevel 并更新UI状态
+      const importedLevel = dataToParse.powerLevel;
+
+      // 校验导入的等级是否是有效的等级键名
+      if (importedLevel && levelingData.levels[importedLevel as PowerLevel]) {
+        // 如果有效，则更新控制UI的 powerLevel 状态
+        setPowerLevel(importedLevel);
+      } else {
+        // 如果JSON文件中没有等级信息或信息无效，则安全地重置为默认的'seed'级
+        setPowerLevel('seed');
+      }
+      
+      // 加载自定义技能和能力标签
       setCustomSkills(importedData.customSkills || []);
       const customPowerTags = importedData.customPowerTags || [];
       setCustomEffectTags(customPowerTags.filter((t: any) => t.type === 'effect'));
@@ -447,7 +463,7 @@ const CharacterCreatorPage: React.FC = () => {
               <CharacterSheetDisplay characterSheet={character} powerLevel={powerLevel} onSaveImage={handleSaveImageCallback} spentAttributePoints={spentAttributePoints} spentSkillPoints={spentSkillPoints} spentPcpPoints={spentPcpPoints} customSkills={customSkills} customEffectTags={customEffectTags} customModifierTags={customModifierTags} />
             </section>
             <section id="step-8-export">
-              <ExportPanel characterSheet={character} customSkills={customSkills} customEffectTags={customEffectTags} customModifierTags={customModifierTags} spentAttributePoints={spentAttributePoints} spentSkillPoints={spentSkillPoints} spentPcpPoints={spentPcpPoints} />
+              <ExportPanel characterSheet={character} powerLevel={powerLevel} customSkills={customSkills} customEffectTags={customEffectTags} customModifierTags={customModifierTags} spentAttributePoints={spentAttributePoints} spentSkillPoints={spentSkillPoints} spentPcpPoints={spentPcpPoints} />
             </section>
           </div>
 

@@ -1,7 +1,7 @@
 // components/character-creator/ExportPanel.tsx
 
 import React from 'react';
-import { CharacterSheet } from '../../pages/character/create';
+import { CharacterSheet, PowerLevel } from '../../pages/character/create'; // 导入 PowerLevel
 import { CustomSkill } from './SkillAllocatorPanel';
 import { EffectTag, ModifierTag } from '@/lib/trpg/powers';
 import { Download, Copy } from 'lucide-react';
@@ -16,6 +16,7 @@ import { Download, Copy } from 'lucide-react';
 
 interface ExportPanelProps {
   characterSheet: CharacterSheet;
+  powerLevel: PowerLevel;
   customSkills: CustomSkill[];
   customEffectTags: EffectTag[];
   customModifierTags: ModifierTag[];
@@ -30,6 +31,7 @@ interface ExportPanelProps {
  */
 const ExportPanel: React.FC<ExportPanelProps> = ({
   characterSheet,
+  powerLevel,
   customSkills,
   customEffectTags,
   customModifierTags,
@@ -51,6 +53,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     return {
       characterSheet: {
         ...characterSheet,
+        powerLevel: powerLevel,
         powers: characterSheet.powers.map(({ id, ...rest }) => rest)
       },
       customSkills,
