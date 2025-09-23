@@ -25,7 +25,7 @@ const featureConfigs: FeatureConfig[] = [
     description: '引导式创建、自动计算、构筑独一无二的魔法少女。',
     href: '/character/create',
     className: 'creator-card',
-    iconSrc: '/mahou-title.svg',
+    iconSrc: '/flower.svg',
   },
   {
     id: 'rulebook',
@@ -33,7 +33,7 @@ const featureConfigs: FeatureConfig[] = [
     description: '随时查阅《魔法少女竞技场》的核心规则与设定。',
     href: '/rules',
     className: 'rules-card',
-    iconSrc: '/scenario.svg',
+    iconSrc: '/rules.svg',
   },
   {
     id: 'dice-roller',
@@ -41,16 +41,16 @@ const featureConfigs: FeatureConfig[] = [
     description: '内置d100判定和奖惩骰规则的便捷投骰器。',
     href: '/dice',
     className: 'dice-roller-card',
-    iconSrc: '/file.svg', 
+    iconSrc: '/dice.svg', 
   },
-  // 【指向魔法少女生成器的外部链接入口
+  // 指向魔法少女生成器的外部链接入口
   {
     id: 'mahoshojo-generator',
     title: '前往魔法少女生成器',
     description: '源项目，快速生成包含背景、故事和立绘的角色。',
     href: 'https://mahoshojo.colanns.me',
     className: 'generator-link-card',
-    iconSrc: '/logo.svg', // 使用生成器的Logo作为图标
+    iconSrc: '/logo-white-qrcode.svg',
     isExternal: true,
   },
 ];
