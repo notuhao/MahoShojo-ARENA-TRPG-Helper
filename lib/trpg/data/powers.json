@@ -1,21 +1,227 @@
 {
   "effectTags": [
-    { "id": "damage", "name": "[伤害]", "cost": 1, "isScalable": true, "description": "造成伤害，每阶提供1d6伤害。" },
-    { "id": "heal", "name": "[治疗]", "cost": 2, "isScalable": true, "description": "恢复HP，每阶恢复1d6 HP。" },
-    { "id": "shield", "name": "[护盾]", "cost": 2, "isScalable": true, "description": "创造临时护盾，每阶提供1d8点护盾值。" },
-    { "id": "bind", "name": "[束缚]", "cost": 3, "isScalable": false, "description": "限制目标的移动。" },
-    { "id": "buff", "name": "[强化]", "cost": 2, "isScalable": true, "description": "暂时提升一个属性或技能。" },
-    { "id": "illusion", "name": "[幻象]", "cost": 4, "isScalable": false, "description": "创造一个虚假的感官影像。" },
-    { "id": "create", "name": "[创造]", "cost": 5, "isScalable": false, "description": "凭空创造简单的无生命物体。" }
+    {
+      "id": "damage",
+      "name": "[伤害]",
+      "cost": 1,
+      "isScalable": true,
+      "description": "对目标造成物理或能量伤害。每阶提供1d6基础伤害。"
+    },
+    {
+      "id": "heal",
+      "name": "[治疗]",
+      "cost": 2,
+      "isScalable": true,
+      "description": "恢复目标的生命值（HP）。每阶恢复1d6点HP。"
+    },
+    {
+      "id": "shield",
+      "name": "[护盾]",
+      "cost": 2,
+      "isScalable": true,
+      "description": "为目标提供临时的伤害吸收护盾。每阶提供2+1d6点护盾值。"
+    },
+    {
+      "id": "bind",
+      "name": "[束缚]",
+      "cost": 3,
+      "isScalable": false,
+      "description": "限制目标的物理移动，使其无法离开当前位置。"
+    },
+    {
+      "id": "buff",
+      "name": "[强化]",
+      "cost": 2,
+      "isScalable": true,
+      "description": "暂时提升一个或多个目标的属性、技能或其他正面状态。"
+    },
+    {
+      "id": "illusion",
+      "name": "[幻象]",
+      "cost": 4,
+      "isScalable": false,
+      "description": "创造一个虚假的感官影像，可用于欺骗、迷惑或作为掩护。"
+    },
+    {
+      "id": "create",
+      "name": "[创造]",
+      "cost": 5,
+      "isScalable": false,
+      "description": "凭空创造简单的、非魔法的无生命物体。"
+    },
+    {
+      "id": "debuff",
+      "name": "[弱化]",
+      "cost": 3,
+      "isScalable": true,
+      "description": "暂时降低目标的属性、技能，或瓦解其防御、装备的效能。"
+    },
+    {
+      "id": "inflict_status",
+      "name": "[附加状态]",
+      "cost": 3,
+      "isScalable": false,
+      "description": "为目标附加一个负面状态效果（如眩晕、中毒）。具体效果由能力描述决定。"
+    },
+    {
+      "id": "mental_damage",
+      "name": "[精神伤害]",
+      "cost": 2,
+      "isScalable": true,
+      "description": "对目标的意志或精神造成伤害，可能削减光辉值。每阶造成1d6精神伤害。"
+    },
+    {
+      "id": "control_mind",
+      "name": "[精神控制]",
+      "cost": 5,
+      "isScalable": false,
+      "description": "暂时控制一个目标的思想或部分行动，需要通过意志对抗。"
+    },
+    {
+      "id": "movement",
+      "name": "[移动]",
+      "cost": 2,
+      "isScalable": true,
+      "description": "让使用者进行快速、特殊或额外的移动。每阶提升移动距离或灵活性。"
+    },
+    {
+      "id": "detect",
+      "name": "[探测]",
+      "cost": 3,
+      "isScalable": false,
+      "description": "感知或揭示指定范围内的隐藏信息、生物、物体或魔法灵光。"
+    },
+    {
+      "id": "drain",
+      "name": "[吸取]",
+      "cost": 3,
+      "isScalable": true,
+      "description": "抽取目标的资源（如MP），并可选择将其转移给自己。每阶抽取1d4点。"
+    },
+    {
+      "id": "counter",
+      "name": "[反制]",
+      "cost": 4,
+      "isScalable": false,
+      "description": "中断、无效化或反弹一个正在生效或即将生效的魔法效果。"
+    },
+    {
+      "id": "summon",
+      "name": "[召唤]",
+      "cost": 3,
+      "isScalable": true,
+      "description": "召唤一个生物或创造一个实体来协助你。每阶提升召唤物的强度或数量。"
+    },
+    {
+      "id": "erase_concept",
+      "name": "[概念抹除]",
+      "cost": 10,
+      "isScalable": false,
+      "description": "暂时或永久地抹除一个非生命体的概念或一个目标的某种能力，能否生效和具体效果取决于阶数和目标强度。"
+    }
   ],
   "modifierTags": [
-    { "id": "range_long", "name": "[距离: 远程]", "cost": 2, "description": "效果可以作用于视线内的目标。" },
-    { "id": "area_burst", "name": "[范围: 爆发]", "cost": 3, "description": "效果影响一个小范围区域内的所有目标。" },
-    { "id": "duration_concentration", "name": "[持续: 专注]", "cost": 2, "description": "效果只要你花费行动维持就会一直持续。" },
-    { "id": "elemental_fire", "name": "[元素: 火]", "cost": 1, "description": "附加火焰属性。" },
-    { "id": "elemental_ice", "name": "[元素: 冰]", "cost": 1, "description": "附加冰霜属性。" },
-    { "id": "elemental_thunder", "name": "[元素: 雷]", "cost": 1, "description": "附加雷电属性。" },
-    { "id": "elemental_light", "name": "[元素: 光]", "cost": 1, "description": "附加光明属性。" },
-    { "id": "elemental_dark", "name": "[元素: 暗]", "cost": 1, "description": "附加黑暗属性。" }
+    {
+      "id": "range_long",
+      "name": "[距离: 远程]",
+      "cost": 2,
+      "description": "效果可以作用于视线范围内的远距离目标。"
+    },
+    {
+      "id": "area_burst",
+      "name": "[范围: 爆发]",
+      "cost": 3,
+      "description": "效果以一个点为中心，影响一个小范围（如半径5米）区域内的所有目标。"
+    },
+    {
+      "id": "area_cone",
+      "name": "[范围: 锥形]",
+      "cost": 3,
+      "description": "效果从使用者开始，呈锥形扩散影响一个区域。"
+    },
+    {
+      "id": "area_line",
+      "name": "[范围: 直线]",
+      "cost": 3,
+      "description": "效果呈一条直线影响路径上的所有目标。"
+    },
+    {
+      "id": "selective_exemption",
+      "name": "[修正: 选择性豁免]",
+      "cost": 2,
+      "description": "你的范围效果可以选择不影响范围内的特定目标（如队友）。"
+    },
+    {
+      "id": "selective_focus",
+      "name": "[修正: 选择性聚焦]",
+      "cost": 1,
+      "description": "你的范围效果可以聚焦于范围内的特定目标，如此做则会增强目标受到的影响、减轻非目标受到的影响。"
+    },
+    {
+      "id": "multi_target",
+      "name": "[多重目标]",
+      "cost": 2,
+      "description": "效果可以同时影响多个独立目标。每额外增加一个目标，此修正成本叠加一次。"
+    },
+    {
+      "id": "duration_concentration",
+      "name": "[持续: 专注]",
+      "cost": 2,
+      "description": "效果只要你花费一个次要动作维持就会一直持续。"
+    },
+    {
+      "id": "duration_lingering",
+      "name": "[持续: 残留]",
+      "cost": 3,
+      "description": "效果在目标区域持续存在一段时间，影响进入或停留在区域内的目标。"
+    },
+    {
+      "id": "mode_switch",
+      "name": "[模式切换]",
+      "cost": 2,
+      "description": "允许一个能力在2种效果间切换。每增加一种可选效果模式，此修正成本叠加一次。"
+    },
+    {
+      "id": "elemental_fire",
+      "name": "[元素: 火]",
+      "cost": 1,
+      "description": "附加火焰属性，可能造成燃烧效果。"
+    },
+    {
+      "id": "elemental_ice",
+      "name": "[元素: 冰]",
+      "cost": 1,
+      "description": "附加冰霜属性，可能造成减速或冻结效果。"
+    },
+    {
+      "id": "elemental_thunder",
+      "name": "[元素: 雷]",
+      "cost": 1,
+      "description": "附加雷电属性，可能造成麻痹或连锁效果。"
+    },
+    {
+      "id": "elemental_light",
+      "name": "[元素: 光]",
+      "cost": 1,
+      "description": "附加光明属性，对暗影生物有奇效。"
+    },
+    {
+      "id": "elemental_dark",
+      "name": "[元素: 暗]",
+      "cost": 1,
+      "description": "附加黑暗属性，可能造成腐蚀或致盲效果。"
+    },
+    {
+      "id": "elemental_corrosion",
+      "name": "[元素: 腐蚀]",
+      "cost": 1,
+      "description": "附加酸性或腐蚀属性，可能持续造成伤害或破坏护甲。"
+    },
+    {
+      "id": "drawback_mana",
+      "name": "[代价: 魔力消耗]",
+      "cost": -1,
+      "description": "该能力每次使用额外消耗1点MP，以此为代价降低1点PCP成本。"
+    }
   ]
 }

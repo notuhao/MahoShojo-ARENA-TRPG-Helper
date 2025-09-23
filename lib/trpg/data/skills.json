@@ -42,7 +42,7 @@
     "description": "创造魔法护盾或防御性领域。"
   },
   {
-    "id": "mysticLore",
+    "id": "mystic_lore",
     "name": "神秘学",
     "attribute": "MAG",
     "base": 5,
@@ -109,10 +109,10 @@
     "name": "运动",
     "attribute": "STR+AGI",
     "base": 10,
-    "description": "跑、跳、攀爬等身体活动。"
+    "description": "跑、跳、攀爬、飞行等身体活动。"
   },
   {
-    "id": "sleightOfHand",
+    "id": "sleight_of_hand",
     "name": "巧手",
     "attribute": "AGI",
     "base": 10,
