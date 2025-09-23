@@ -34,6 +34,7 @@ const PowerCreatorPanel: React.FC<PowerCreatorPanelProps> = ({
     const newPower: Power = {
       id: Date.now(), // 使用时间戳作为临时唯一ID
       name: '',
+      description: '', // 【新增】初始化描述字段
       effectTagId: '',
       rank: 1,
       modifierTagIds: [],

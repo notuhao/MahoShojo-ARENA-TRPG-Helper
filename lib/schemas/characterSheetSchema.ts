@@ -55,7 +55,8 @@ const skillPointsSchema = z.object(
 // 单个能力
 const powerSchema = z.object({
   id: z.number().describe('一个临时的唯一ID，用于React key，使用时间戳即可'),
-  name: z.string().describe('这个能力的自定义名称'),
+  name: z.string().describe('这个能力的名称'),
+  description: z.string().optional().describe('对这个能力的具体文字描述'),
   effectTagId: z.string().describe('能力的核心效果标签ID'),
   rank: z.number().min(1).describe('如果效果可叠加，此为阶数，否则为1'),
   modifierTagIds: z.array(z.string()).describe('附加的修正标签ID数组'),

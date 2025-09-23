@@ -41,7 +41,14 @@ export interface CharacterAttributes { STR: number; CON: number; AGI: number; MA
 // 技能点记录，键为技能ID，值为投入点数
 export type SkillPoints = Record<string, number>;
 // 单个能力
-export interface Power { id: number; name: string; effectTagId: string; rank: number; modifierTagIds: string[]; }
+export interface Power {
+  id: number;
+  name: string;
+  description: string;
+  effectTagId: string;
+  rank: number;
+  modifierTagIds: string[];
+}
 // 角色叙事信息
 export interface CharacterInfo { realName: string; codename: string; belief: string; background: string; appearance: string; faction: '魔法国度' | '爪痕' | '黑烬黎明' | '其他' | ''; customFaction?: string; }
 // 魔装
@@ -249,7 +256,14 @@ const CharacterCreatorPage: React.FC = () => {
       wonderlandRule: { ...baseSheet.wonderlandRule, ...(aiSheet.wonderlandRule || {}) },
       blooming: { ...baseSheet.blooming, ...(aiSheet.blooming || {}) },
       gemScepter: { ...baseSheet.gemScepter, ...(aiSheet.gemScepter || {}) },
-      powers: aiSheet.powers || baseSheet.powers,
+      powers: aiSheet.powers
+        ? aiSheet.powers.map(p => ({
+            ...p,
+            id: p.id || Date.now() + Math.random(), // 确保有id
+            description: p.description || '', // 确保 description 是字符串
+          }))
+        : baseSheet.powers,
+      
       bonds: aiSheet.bonds || baseSheet.bonds,
       statusEffects: [], 
     };

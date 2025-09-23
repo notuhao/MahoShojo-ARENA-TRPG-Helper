@@ -77,7 +77,14 @@ const PowerEditor: React.FC<PowerEditorProps> = ({
         </button>
       </div>
       
-      {/* 效果选择和阶数 */}
+      <textarea
+        value={power.description}
+        onChange={(e) => onPowerChange({ ...power, description: e.target.value })}
+        rows={2}
+        placeholder="能力描述 (例如：从阳伞尖端射出一束灼热的光线)"
+        className="input-field text-sm w-full"
+      />
+      
       <div className="flex items-center gap-4">
         <select value={power.effectTagId} onChange={handleEffectChange} className="input-field flex-1">
           <option value="">-- 选择一个效果 --</option>

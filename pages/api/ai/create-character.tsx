@@ -13,7 +13,7 @@ import type { NextRequest } from 'next/server';
  * - 接收 `allowCustomSkills` 和 `allowCustomPowers` 参数。
  * - 根据参数动态修改系统提示词，授权AI进行内容创造。
  * - 使用新的 `aiGeneratedCharacterSchema` 作为返回数据结构，以接收AI创造的自定义内容和完整的角色卡结构。
- * - 系统提示词已全面更新，以匹配v0.1.1规则书的所有细节。
+ * - 更新系统提示词，要求AI为每个创造的能力都添加一段生动的描述（description）。
  */
 
 export const config = {
@@ -68,7 +68,7 @@ export default async function handler(req: NextRequest) {
       2.  **创造性地** 填写所有叙事信息 (info, magicConstruct, etc.)。代号(codename)应与花卉相关。背景故事、信念、羁绊等需要深刻且自洽。
       3.  **策略性地** 分配280点核心属性，使其符合角色定位。
       4.  **合理地** 分配150点技能点。确保技能分配能反映角色的专长和背景故事。
-      5.  **最具创造性的一步:** 设计2-3个总成本恰好为20 PCP的“心之花”能力。为它们取名，并组合效果与修正标签，使其与角色设定相符。
+      5.  **最具创造性的一步:** 设计2-3个总成本恰好为20 PCP的“心之花”能力。为它们取名，并组合效果与修正标签，使其与角色设定相符。参考效果与修正，为每个能力添加一段生动的 'description'，描述其具体效果与作用方式。
       6.  设计1-2个结构化的羁绊(bonds)，包含所有必需字段。
       7.  最终，将所有数据整合为一个符合Schema的JSON对象并返回。`;
 
