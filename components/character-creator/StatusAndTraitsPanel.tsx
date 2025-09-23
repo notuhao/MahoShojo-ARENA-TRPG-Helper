@@ -1,25 +1,16 @@
-// 文件: components/character-creator/StatusAndTraitsPanel.tsx
+// components/character-creator/StatusAndTraitsPanel.tsx
 
 import React, { useState } from 'react';
 import { StatusEffect } from '../../pages/character/create';
 import { X, PlusCircle } from 'lucide-react';
+import { PRESET_STATUSES, StatusEffectDefinition } from '@/lib/trpg/statuses';
 
 /**
  * @fileoverview 角色状态与特质管理面板 (v0.1.2 重构版)
  * @description
  * - [核心重构] 完全重写以支持结构化的状态效果（名称、机制、持续时间），满足SRS v0.1.1要求。
- * - [UI/UX优化] 重新设计了自定义状态的输入表单，使其更清晰、易用。
- * - [UI/UX优化] 当前状态效果以卡片形式展示，信息更完整，布局更美观。
+ * - [核心重构] 不再硬编码预设状态，而是从 @/lib/trpg/statuses.ts 导入，实现了数据解耦。
  */
-
-// 预设的状态效果，现在是完整的对象结构
-const PRESET_STATUSES: Omit<StatusEffect, 'id'>[] = [
-  { name: '束缚', mechanism: '无法移动。闪避判定受到一个惩罚骰。', duration: '直到被解放或通过STR判定' },
-  { name: '燃烧', mechanism: '每回合开始时受到1d6点火焰伤害。', duration: '直到花费一个主要动作扑灭' },
-  { name: '眩晕', mechanism: '无法执行任何动作。', duration: '直到该角色下回合结束' },
-  { name: '混乱', mechanism: '随机行动。', duration: '直到通过一次WILL判定' },
-  { name: '影染', mechanism: '无法呼唤羁绊。共情判定受惩罚骰。', duration: '直到光辉值恢复过半' },
-];
 
 interface StatusAndTraitsPanelProps {
   statusEffects: StatusEffect[];
@@ -42,12 +33,13 @@ const StatusAndTraitsPanel: React.FC<StatusAndTraitsPanelProps> = ({
   });
 
   // 添加一个新的状态效果
-  const addStatusEffect = (effectData: Omit<StatusEffect, 'id'>) => {
-    // 检查是否已存在同名状态
+  const addStatusEffect = (effectData: StatusEffectDefinition) => {
     if (effectData.name.trim() && !statusEffects.some(e => e.name === effectData.name.trim())) {
       const newEffect: StatusEffect = {
-        id: Date.now(), // 使用时间戳作为唯一key
-        ...effectData
+        id: Date.now(),
+        name: effectData.name,
+        mechanism: effectData.mechanism,
+        duration: effectData.duration
       };
       onStatusEffectsChange([...statusEffects, newEffect]);
     }
@@ -56,8 +48,8 @@ const StatusAndTraitsPanel: React.FC<StatusAndTraitsPanelProps> = ({
   // 处理添加自定义状态
   const handleAddCustomStatus = () => {
     if (customStatus.name.trim()) {
-      addStatusEffect(customStatus);
-      // 清空输入框
+      // 自定义状态也符合 StatusEffectDefinition 的结构
+      addStatusEffect({ id: 'custom', ...customStatus });
       setCustomStatus({ name: '', mechanism: '', duration: '' });
     }
   };
@@ -100,7 +92,7 @@ const StatusAndTraitsPanel: React.FC<StatusAndTraitsPanelProps> = ({
             <div className="flex flex-wrap gap-2">
               {PRESET_STATUSES.map(status => (
                 <button
-                  key={status.name}
+                  key={status.id}
                   onClick={() => addStatusEffect(status)}
                   disabled={statusEffects.some(e => e.name === status.name)}
                   className="px-3 py-1 bg-white border border-gray-300 rounded-full text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"

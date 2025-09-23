@@ -1,0 +1,32 @@
+[
+  {
+    "id": "bound",
+    "name": "束缚",
+    "mechanism": "无法移动。闪避判定受到一个惩罚骰。",
+    "duration": "直到被解放或通过STR判定"
+  },
+  {
+    "id": "burning",
+    "name": "燃烧",
+    "mechanism": "每回合开始时受到1d6点火焰伤害。",
+    "duration": "直到花费一个主要动作扑灭"
+  },
+  {
+    "id": "stunned",
+    "name": "眩晕",
+    "mechanism": "无法执行任何动作。",
+    "duration": "直到该角色下回合结束"
+  },
+  {
+    "id": "confused",
+    "name": "混乱",
+    "mechanism": "随机行动。",
+    "duration": "直到通过一次WILL判定"
+  },
+  {
+    "id": "shadow_touched",
+    "name": "影染",
+    "mechanism": "无法呼唤羁绊。共情判定受惩罚骰。",
+    "duration": "直到光辉值恢复过半"
+  }
+]
