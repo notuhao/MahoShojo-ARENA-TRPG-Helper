@@ -12,14 +12,9 @@ export default function Footer({ className = "footer", textWhite = false }: Foot
   return (
     <footer className={className} style={{ color: textWhite ? 'white' : '' }}>
       <p>
-        本项目绝赞靠爱发电中，
+        注意，本项目<b>并非</b>正经的跑团，
       </p>
-      <p>欢迎在爱发电上赞助我们！</p>
-      <p style={{ textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
-        <Link href="https://afdian.com/a/colanns" target="_blank" rel="noopener noreferrer">
-          {textWhite ? <Image src="/afdian-white.svg" alt="afdian" width={120} height={20} /> : <Image src="/afdian.svg" alt="afdian" width={120} height={20} />}
-        </Link>
-      </p>
+      <p>只是带有<b>跑团风味</b>的生成器衍生项目。</p>
       <p>
         交流群 <a href="https://qun.qq.com/universal-share/share?ac=1&busi_data=eyJncm91cENvZGUiOiIxMDU5ODMwOTUyIiwidG9rZW4iOiJNUFN6UVpBRVZNNU9COWpBa21DU1lxczRObXhiKy9kSzEvbHhOcnNpT1RBZEVRU3dtZ2hUQjJVNGtuYk5ISDhrIiwidWluIjoiMTAxOTcyNzcxMCJ9&data=DxfxSXDeGY3mgLKqoTGEoHkfqpums19TEW8Alu5Ikc3uCmV0O8YkLVLyRTMOp61VjFN387-7QL8-j2AFHUX2QXq525oXb8rl0lNhm0K453Q&svctype=5&tempid=h5_group_info" target="_blank" rel="noopener noreferrer" className="footer-link">1059830952</a>
       </p>
