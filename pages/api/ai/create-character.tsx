@@ -79,7 +79,7 @@ export default async function handler(req: NextRequest) {
       temperature: 0.8,
       maxTokens: 4096,
       taskName: 'TRPG角色创建',
-      modelOverride: isDowngrade ? "gemini-1.5-flash-latest" : undefined,
+      modelOverride: isDowngrade ? "gemini-2.5-flash-lite" : undefined,
     };
 
     // 调用AI服务核心

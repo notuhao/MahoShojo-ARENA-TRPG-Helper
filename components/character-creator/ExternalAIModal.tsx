@@ -3,15 +3,17 @@
 import React, { useState } from 'react';
 import { X, Copy, Check, AlertTriangle } from 'lucide-react';
 import { type AIGeneratedCharacterData } from '@/lib/schemas/characterSheetSchema';
+import { initialCharacterSheet } from '@/lib/trpg/characterDefaults';
 
 /**
  * @fileoverview 用于处理外部AI输入输出的模态框组件。
  * @description
- * 该组件提供以下功能：
- * 1. 显示并一键复制为AI准备的完整提示词。
- * 2. 提供一个文本区域，供用户粘贴从外部AI获取的JSON输出。
- * 3. 解析粘贴的JSON，并在成功后通过回调函数将其加载到角色创建器中。
- * 4. 显示解析成功或失败的状态信息。
+ * [核心更新]
+ * - 实现了鲁棒的JSON解析逻辑。现在可以处理两种情况：
+ * 1. 包含 `characterSheet` 包装的完整、规范的JSON。
+ * 2. 不包含 `characterSheet` 包装，直接是角色卡内容的JSON。
+ * - 解析时，会先加载一个默认的角色卡模板，然后用AI返回的数据覆盖相应字段，
+ * 这极大地提高了对不完整或结构不完全匹配的JSON的兼容性。
  */
 
 interface ExternalAIModalProps {
@@ -20,6 +22,37 @@ interface ExternalAIModalProps {
   fullPrompt: string; // 完整的、可以直接复制给AI的提示词
   onCharacterGenerated: (data: AIGeneratedCharacterData) => void;
 }
+
+// 一个简单的辅助函数，用于判断一个值是否是纯粹的对象
+const isObject = (item: any): item is Record<string, any> => {
+  return (item && typeof item === 'object' && !Array.isArray(item));
+};
+
+/**
+ * 深度合并函数（简化版）
+ * @description 将源对象的属性递归地合并到目标对象中。
+ * @param target 目标对象（将被修改）
+ * @param source 源对象
+ * @returns 合并后的目标对象
+ */
+const deepMerge = (target: any, source: any): any => {
+    const output = { ...target };
+    if (isObject(target) && isObject(source)) {
+        Object.keys(source).forEach(key => {
+            if (isObject(source[key])) {
+                if (!(key in target)) {
+                    Object.assign(output, { [key]: source[key] });
+                } else {
+                    output[key] = deepMerge(target[key], source[key]);
+                }
+            } else {
+                Object.assign(output, { [key]: source[key] });
+            }
+        });
+    }
+    return output;
+};
+
 
 const ExternalAIModal: React.FC<ExternalAIModalProps> = ({
   isOpen,
@@ -55,16 +88,38 @@ const ExternalAIModal: React.FC<ExternalAIModalProps> = ({
 
     try {
       // 尝试解析用户粘贴的JSON
-      const parsedData = JSON.parse(pastedJson);
+      const rawData = JSON.parse(pastedJson);
 
-      // 这里可以添加更严格的Zod Schema验证，但目前只做基本解析
-      // 假设解析成功的数据结构符合 AIGeneratedCharacterData
-      if (parsedData && parsedData.characterSheet) {
-        onCharacterGenerated(parsedData);
-        onClose(); // 加载成功后关闭模态框
-      } else {
-        throw new Error('JSON数据缺少必要的 `characterSheet` 字段。');
+      // 1. 创建一个默认的、完整的返回结构作为基底
+      const finalData: AIGeneratedCharacterData = {
+        characterSheet: JSON.parse(JSON.stringify(initialCharacterSheet)), // 使用深拷贝的默认角色卡
+        customSkills: [],
+        customPowerTags: [],
+      };
+
+      // 2. 智能判断AI返回的数据结构
+      // - 如果存在 `characterSheet` 键，则认为这是规范的完整数据。
+      // - 如果不存在，则假定 `rawData` 本身就是 `characterSheet` 的内容。
+      const dataToMerge = rawData.characterSheet ? rawData : { characterSheet: rawData };
+      
+      // 3. 将AI提供的数据深度合并到我们的默认结构中
+      // 这样做可以确保即使AI遗漏了某些字段，我们的应用也不会因为缺少键而崩溃。
+      if (dataToMerge.characterSheet && typeof dataToMerge.characterSheet === 'object') {
+        finalData.characterSheet = deepMerge(finalData.characterSheet, dataToMerge.characterSheet);
       }
+      
+      // 合并AI可能创建的自定义技能和能力标签
+      if (dataToMerge.customSkills) {
+        finalData.customSkills = dataToMerge.customSkills;
+      }
+      if (dataToMerge.customPowerTags) {
+        finalData.customPowerTags = dataToMerge.customPowerTags;
+      }
+
+      // 4. 调用回调函数，将合并后的、结构完整的数据加载到创建器中
+      onCharacterGenerated(finalData);
+      onClose(); // 加载成功后关闭模态框
+
     } catch (err: any) {
       console.error('解析外部AI输出失败:', err);
       setError(`加载失败：无效的JSON格式或结构不正确。错误信息: ${err.message}`);

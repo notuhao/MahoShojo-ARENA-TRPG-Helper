@@ -8,10 +8,11 @@ import { SKILLS } from '@/lib/trpg/skills'; // 2. 引入生成提示词所需的
 import { EFFECT_TAGS, MODIFIER_TAGS } from '@/lib/trpg/powers';
 
 /**
- * @fileoverview AI辅助角色创建面板组件 (V2.1)。
+ * @fileoverview AI辅助角色创建面板组件 (V2.2)。
  * @description
- * - [新增] 添加“使用外部AI”功能，允许用户手动复制提示词并在外部AI生成后粘贴JSON数据回来。
- * - [重构] 将提示词生成逻辑从API端点复制到此组件内，以便共享给外部AI模态框使用。
+ * - [核心更新] 为提供给外部AI的提示词补充了详细的JSON Schema结构说明，以提高生成内容的准确性。
+ * - [v2.1新增] 添加“使用外部AI”功能，允许用户手动复制提示词并在外部AI生成后粘贴JSON数据回来。
+ * - [v2.1重构] 将提示词生成逻辑从API端点复制到此组件内，以便共享给外部AI模态框使用。
  */
 
 interface AICharacterCreatorPanelProps {
@@ -36,11 +37,53 @@ const AICharacterCreatorPanel: React.FC<AICharacterCreatorPanelProps> = ({
   const [isExternalModalOpen, setIsExternalModalOpen] = useState(false);
 
   /**
-   * [新增] 生成完整的系统提示词。
-   * 此逻辑与 `/api/ai/create-character` 后端路由中的逻辑保持一致。
+   * [核心更新] 生成完整的系统提示词，现在包含清晰的JSON Schema定义。
+   * 此函数现在为外部AI提供了一个结构化的指南，以确保返回的数据格式正确。
    * @returns {string} 完整的系统提示词字符串。
    */
   const generateFullPrompt = (): string => {
+    // Schema的文本描述，用于注入到提示词中
+    const schemaDefinitionForPrompt = `
+**4. JSON输出结构 (Schema):**
+你返回的内容 **必须** 是一个严格遵循以下结构的JSON对象。 **不要** 在JSON代码块之外添加任何解释、注释或格式化。
+
+\`\`\`json
+{
+  "characterSheet": {
+    "info": {
+      "realName": "string",
+      "codename": "string (一种花名)",
+      "appearance": "string (魔法少女形态的详细描述)",
+      "faction": "string (从 '魔法国度', '爪痕', '黑烬黎明', '其他', '' 中选择)",
+      "customFaction": "string (如果阵营是 '其他')",
+      "belief": "string (战斗的信念与愿望)",
+      "background": "string (背景故事)"
+    },
+    "attributes": { "STR": "number", "CON": "number", "AGI": "number", "MAG": "number", "WILL": "number", "PER": "number", "CHM": "number" },
+    "skills": {
+      "brawl": "number", "firearms": "number", "throw": "number", "dodge": "number", "channel": "number", "ward": "number", "mysticLore": "number",
+      "persuade": "number", "intimidate": "number", "empathy": "number", "perform": "number", "science": "number", "medicine": "number",
+      "investigate": "number", "stealth": "number", "athletics": "number", "sleightOfHand": "number"
+    },
+    "powers": [
+      {
+        "id": "number (使用时间戳)", "name": "string", "description": "string", "effectTagId": "string (从下方列表选择)",
+        "rank": "number (>= 1)", "modifierTagIds": ["string", "..."]
+      }
+    ],
+    "magicConstruct": { "name": "string", "description": "string" },
+    "wonderlandRule": { "description": "string" },
+    "blooming": { "description": "string", "abilities": [{ "name": "string", "description": "string" }] },
+    "gemScepter": { "name": "string", "ability": "string" },
+    "bonds": [
+      { "id": "number (使用时间戳)", "target": "string", "description": "string", "statusAndNotes": "string", "radianceImpact": "number" }
+    ]
+  },
+  "customSkills": [ { "id": "string", "name": "string", "attribute": "string", "base": "number" } ],
+  "customPowerTags": [ { "id": "string", "name": "string", "cost": "number", "type": "string ('effect' or 'modifier')", "isScalable": "boolean (optional)", "description": "string" } ]
+}
+\`\`\`
+`;
     // 基础系统提示词
     let systemPrompt = `你是一位专业的《魔法少女竞技场TRPG》游戏设计师。你的任务是根据用户提供的简短描述，创造一个完整、详细且严格遵守规则的角色卡。
 
@@ -50,7 +93,7 @@ const AICharacterCreatorPanel: React.FC<AICharacterCreatorPanelProps> = ({
     - **技能点数:** 所有标准技能上投入的点数总和必须 **严格等于 150 点**。你必须为每个标准技能都分配点数，即使是0点也要在JSON中体现。
     - **能力创造点数 (PCP):** 所有“心之花”能力的总PCP成本必须 **严格等于 20 点**。你需要设计2-3个能力来恰好用完这20点。
 2.  **内容完整性:** 你必须为角色卡的所有叙事字段（info, magicConstruct, wonderlandRule, blooming, gemScepter, bonds）提供富有想象力且符合角色设定的内容。
-3.  **JSON结构:** 你必须严格按照提供的Zod Schema格式返回一个JSON对象。不要包含任何额外的解释或注释，只返回JSON对象。
+3.  **JSON结构:** 你必须严格按照下面第4点提供的 **JSON输出结构 (Schema)** 格式返回一个JSON对象。
 
 **设计参考资料:**
 **1. 标准技能列表 (ID, 名称):**
@@ -67,6 +110,9 @@ ${MODIFIER_TAGS.map(t => `- ${t.id} (${t.name}): +${t.cost} PCP`).join('\n')}`;
     if (allowCustomPowers) {
       systemPrompt += `\n\n**创造授权：自定义能力标签**\n你被授权可以创造规则书中没有的【新能力标签】（效果或修正）。如果一个能力概念很酷但无法用现有标签组合，你可以创造它。对于每个你创造的标签，你必须在返回的 'customPowerTags' 数组中为其添加一个定义对象，包含id, name, cost, type, isScalable(可选), 和 description。你必须为其设定一个平衡的PCP成本。`;
     }
+
+    // 注入Schema定义
+    systemPrompt += `\n\n${schemaDefinitionForPrompt}`;
 
     // 添加工作流程说明
     systemPrompt += `\n\n**你的工作流程:**

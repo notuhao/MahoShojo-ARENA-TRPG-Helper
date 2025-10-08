@@ -24,6 +24,8 @@ import levelingData from '../../lib/trpg/data/leveling.json';
 import { AIGeneratedCharacterData } from '@/lib/schemas/characterSheetSchema';
 import { X, Upload, ClipboardPaste } from 'lucide-react';
 
+import { initialCharacterSheet } from '../../lib/trpg/characterDefaults';
+
 // --- 类型定义区 (v0.1.1) ---
 
 // 力量层级，键名必须与 leveling.json 中的键一致
@@ -84,32 +86,6 @@ export interface CharacterSheet {
   statusEffects: StatusEffect[]; // 确保类型为 StatusEffect[]
   negativeTraits: string;
 }
-
-// --- 初始值定义区 (v0.1.1) ---
-// 为新角色提供一个干净的、符合规则的初始状态模板。
-
-const initialAttributes: CharacterAttributes = { STR: 40, CON: 40, AGI: 40, MAG: 40, WILL: 40, PER: 40, CHM: 40 };
-const initialSkillPoints: SkillPoints = SKILLS.reduce((acc, skill) => { acc[skill.id] = 0; return acc; }, {} as SkillPoints);
-const initialInfo: CharacterInfo = { realName: '', codename: '', belief: '', background: '', appearance: '', faction: '', customFaction: '' };
-
-const initialCharacterSheet: CharacterSheet = {
-  powerLevel: 'seed',
-  info: initialInfo,
-  attributes: initialAttributes,
-  skills: initialSkillPoints,
-  hp: { current: 8, max: 8 },
-  mp: { current: 8, max: 8 },
-  radiance: { current: 8, max: 8 },
-  shadowPoints: 0,
-  magicConstruct: { name: '', description: '' },
-  powers: [],
-  wonderlandRule: { description: '' },
-  blooming: { description: '', abilities: [] },
-  gemScepter: { name: '', ability: '' },
-  bonds: [],
-  statusEffects: [],
-  negativeTraits: '',
-};
 
 // --- 主组件 ---
 const CharacterCreatorPage: React.FC = () => {
