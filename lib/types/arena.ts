@@ -7,9 +7,10 @@ import type {
   ScenarioData,
   SessionCharacter,
   StateDeltaEntry,
+  CustomDefinitions,
 } from '@/lib/schemas/gmTurnSchemas';
 
-export type { ConversationEntry, LevelUpRecommendation, ManualAdjudicationResult, ScenarioData, SessionCharacter, StateDeltaEntry };
+export type { ConversationEntry, LevelUpRecommendation, ManualAdjudicationResult, ScenarioData, SessionCharacter, StateDeltaEntry, CustomDefinitions };
 
 export interface StoryLogEntry {
   id: string;

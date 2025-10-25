@@ -92,9 +92,12 @@ const buildStateUpdateSummary = (
   return lines;
 };
 
+type SkillDefinition = NonNullable<CustomDefinitions['customSkills']>[number];
+type PowerTagDefinition = NonNullable<CustomDefinitions['customPowerTags']>[number];
+
 const deriveCustomDefinitions = (party: SessionCharacter[]): CustomDefinitions | undefined => {
-  const skillMap = new Map<string, CustomDefinitions['customSkills'][number]>();
-  const tagMap = new Map<string, CustomDefinitions['customPowerTags'][number]>();
+  const skillMap = new Map<string, SkillDefinition>();
+  const tagMap = new Map<string, PowerTagDefinition>();
 
   party.forEach((character) => {
     character.customDefinitions?.customSkills?.forEach((skill) => {

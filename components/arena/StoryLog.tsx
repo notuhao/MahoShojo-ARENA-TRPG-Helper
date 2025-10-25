@@ -56,12 +56,11 @@ const StoryLog: React.FC<StoryLogProps> = ({ entries }) => {
                   </span>
                   <span className="text-slate-500">{entry.timestamp}</span>
                 </div>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mb-2 prose-strong:text-purple-600"
-                >
-                  {entry.content}
-                </ReactMarkdown>
+                <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mb-2 prose-strong:text-purple-600">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {entry.content}
+                  </ReactMarkdown>
+                </div>
 
                 {entry.stateUpdates && entry.stateUpdates.length > 0 && (
                   <div className="mt-3 rounded-lg bg-emerald-100/70 p-3 text-xs text-emerald-900">

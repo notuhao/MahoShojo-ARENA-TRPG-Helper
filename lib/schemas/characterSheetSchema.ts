@@ -3,6 +3,16 @@
 import { z } from 'zod';
 import levelingData from '../trpg/data/leveling.json';
 
+const LEVEL_KEYS = [
+  'seed',
+  'sprout',
+  'leaf',
+  'bud',
+  'flower',
+  'gemScepter',
+] as const;
+export type PowerLevel = (typeof LEVEL_KEYS)[number];
+
 /**
  * @fileoverview 定义了用于AI生成的角色卡Zod Schema (V2)。
  * @description
@@ -113,7 +123,7 @@ export const characterSheetSchema = z.object({
   blooming: bloomingSchema,
   gemScepter: gemScepterSchema,
   bonds: z.array(bondSchema),
-  powerLevel: z.string().optional().describe('角色当前处于 leveling.json 中定义的力量层级'),
+  powerLevel: z.enum(LEVEL_KEYS).optional().describe('角色当前处于 leveling.json 中定义的力量层级'),
   hp: dynamicStatSchema.optional().describe('角色当前的生命值状态'),
   mp: dynamicStatSchema.optional().describe('角色当前的魔力状态'),
   radiance: dynamicStatSchema.optional().describe('角色当前的光辉状态'),
