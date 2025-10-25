@@ -112,7 +112,15 @@ export const gmTurnResponseSchema = z.object({
     .boolean()
     .describe('是否暂停等待玩家输入（关键节点模型核心）'),
   pause_reason: z
-    .enum(['KEY_NODE', 'LEVEL_UP', 'EPILOGUE_SUGGESTION', 'SCENARIO_DIRECTIVE'])
+    .enum([
+      'KEY_NODE',
+      'LEVEL_UP',
+      'EPILOGUE_SUGGESTION',
+      'SCENARIO_DIRECTIVE',
+      'MANUAL_ADJUDICATION',
+      'PLAYER_CHOICE',
+      'PLAYER_INPUT',
+    ])
     .describe('暂停原因，用于前端决定UI响应'),
   gm_prompt_to_user: z
     .string()
@@ -200,6 +208,10 @@ export const gmTurnRequestSchema = z.object({
   custom_definitions: customDefinitionSchema
     .optional()
     .describe('全局自定义技能/标签定义'),
+  model_preference: z
+    .string()
+    .optional()
+    .describe('用户选择的模型 ID，仅限后端已配置的模型'),
 });
 
 export type GmTurnRequest = z.infer<typeof gmTurnRequestSchema>;

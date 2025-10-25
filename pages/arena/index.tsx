@@ -1,6 +1,6 @@
 // pages/arena/index.tsx
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Head from 'next/head';
 import Footer from '@/components/Footer';
 import PartyHud from '@/components/arena/PartyHud';
@@ -79,6 +79,27 @@ const buildStateUpdateSummary = (
 type SkillDefinition = NonNullable<CustomDefinitions['customSkills']>[number];
 type PowerTagDefinition = NonNullable<CustomDefinitions['customPowerTags']>[number];
 
+type ModelOption = {
+  id: string;
+  label: string;
+  provider?: string;
+};
+
+const parseModelOptions = (): ModelOption[] => {
+  const raw = process.env.NEXT_PUBLIC_AI_OFFICIAL_MODELS;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as ModelOption[];
+    return parsed.filter((option) => option?.id && option?.label);
+  } catch (error) {
+    console.warn('解析 NEXT_PUBLIC_AI_OFFICIAL_MODELS 失败:', error);
+    return [];
+  }
+};
+
+const MODEL_OPTIONS = parseModelOptions();
+const MODEL_STORAGE_KEY = 'arena-model-preference';
+
 const deriveCustomDefinitions = (party: SessionCharacter[]): CustomDefinitions | undefined => {
   const skillMap = new Map<string, SkillDefinition>();
   const tagMap = new Map<string, PowerTagDefinition>();
@@ -114,7 +135,9 @@ const ArenaPage: React.FC = () => {
   const [manualResults, setManualResults] = useState<ManualAdjudicationResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
+  const [lastPauseReason, setLastPauseReason] = useState<GmTurnResponse['pause_reason']>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [modelPreference, setModelPreference] = useState<string | undefined>(() => undefined);
 
   const characterInputRef = useRef<HTMLInputElement | null>(null);
   const scenarioInputRef = useRef<HTMLInputElement | null>(null);
@@ -123,6 +146,18 @@ const ArenaPage: React.FC = () => {
     () => deriveCustomDefinitions(party),
     [party],
   );
+
+  useEffect(() => {
+    if (MODEL_OPTIONS.length === 0) return;
+    const cached = typeof window !== 'undefined' ? window.localStorage.getItem(MODEL_STORAGE_KEY) : null;
+    setModelPreference(cached || MODEL_OPTIONS[0].id);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && modelPreference) {
+      window.localStorage.setItem(MODEL_STORAGE_KEY, modelPreference);
+    }
+  }, [modelPreference]);
 
   const handleAddManualResult = useCallback((result: ManualAdjudicationResult) => {
     setManualResults((prev) => [result, ...prev.filter((item) => item.adjudicationId !== result.adjudicationId)]);
@@ -243,6 +278,7 @@ const ArenaPage: React.FC = () => {
       manual_adjudication_results: manualResults.length > 0 ? manualResults : undefined,
       scenario_data: scenario ?? undefined,
       custom_definitions: aggregatedCustomDefinitions,
+      model_preference: modelPreference || undefined,
     };
 
     try {
@@ -279,6 +315,7 @@ const ArenaPage: React.FC = () => {
           timestamp: formatTimestamp(),
         },
       ]);
+      setLastPauseReason(gmResponse.pause_reason);
 
       let stateSummary: string[] = [];
       setParty((prev) => {
@@ -330,6 +367,7 @@ const ArenaPage: React.FC = () => {
     manualResults,
     party,
     scenario,
+    modelPreference,
   ]);
 
   const clearScenario = useCallback(() => {
@@ -361,6 +399,39 @@ const ArenaPage: React.FC = () => {
               <div className="mt-4 rounded-2xl border border-purple-200 bg-white/80 p-4 shadow-sm backdrop-blur">
                 <h3 className="text-sm font-semibold text-slate-700">会话资源</h3>
                 <div className="mt-3 flex flex-col gap-2 text-sm">
+                  {MODEL_OPTIONS.length > 0 && (
+                    <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+                      AI 模型
+                      <select
+                        className="rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                        value={modelPreference ?? ''}
+                        onChange={(event) => {
+                          const nextValue = event.target.value || undefined;
+                          setModelPreference(nextValue);
+                          if (nextValue) {
+                            const selected = MODEL_OPTIONS.find((item) => item.id === nextValue);
+                            setStoryLog((prev) => [
+                              ...prev,
+                              {
+                                id: generateId(),
+                                role: 'gm',
+                                type: 'gm-prompt',
+                                content: `已切换至模型 ${selected?.label ?? nextValue}。`,
+                                timestamp: formatTimestamp(),
+                              },
+                            ]);
+                          }
+                        }}
+                        data-testid="model-select"
+                      >
+                        {MODEL_OPTIONS.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   <button
                     type="button"
                     onClick={() => characterInputRef.current?.click()}
@@ -416,18 +487,19 @@ const ArenaPage: React.FC = () => {
                   {errorMessage}
                 </div>
               )}
-              <PlayerInputPanel
-                characters={party}
-                manualResults={manualResults}
-                currentInput={currentInput}
-                onInputChange={setCurrentInput}
-                onAddManualResult={handleAddManualResult}
-                onRemoveManualResult={handleRemoveManualResult}
-                onSubmit={handleSubmit}
-                disabled={party.length === 0}
-                isProcessing={isProcessing}
-                lastPrompt={lastPrompt}
-              />
+      <PlayerInputPanel
+        characters={party}
+        manualResults={manualResults}
+        currentInput={currentInput}
+        onInputChange={setCurrentInput}
+        onAddManualResult={handleAddManualResult}
+        onRemoveManualResult={handleRemoveManualResult}
+        onSubmit={handleSubmit}
+        disabled={party.length === 0}
+        isProcessing={isProcessing}
+        lastPrompt={lastPrompt}
+        pauseReason={lastPauseReason}
+      />
             </div>
           </div>
 

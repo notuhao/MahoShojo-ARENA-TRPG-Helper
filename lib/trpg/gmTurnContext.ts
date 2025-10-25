@@ -102,7 +102,14 @@ ${userInput}
 
 type PauseReason = GmTurnResponse['pause_reason'];
 
-const VALID_PAUSE_REASONS: PauseReason[] = ['KEY_NODE', 'LEVEL_UP', 'EPILOGUE_SUGGESTION'];
+const VALID_PAUSE_REASONS: PauseReason[] = [
+  'KEY_NODE',
+  'LEVEL_UP',
+  'EPILOGUE_SUGGESTION',
+  'MANUAL_ADJUDICATION',
+  'PLAYER_CHOICE',
+  'PLAYER_INPUT',
+];
 
 export const enforcePauseContract = (
   response: GmTurnResponse,
@@ -125,3 +132,21 @@ export const enforcePauseContract = (
 
 export const hasManualResults = (request: GmTurnRequest) =>
   !!request.manual_adjudication_results && request.manual_adjudication_results.length > 0;
+
+export const assertManualResultsApplied = (
+  response: GmTurnResponse,
+  manualResults?: ManualAdjudicationResult[],
+) => {
+  if (!manualResults || manualResults.length === 0) return;
+  const actors = manualResults.map((result) => result.actorCodename || result.actorId);
+  const updates = response.state_updates ?? [];
+  const narrative = response.narrative_chunk ?? '';
+  const satisfied = manualResults.every((result) => {
+    const inUpdates = updates.some((update) => update.characterId === result.actorId);
+    const mentioned = narrative.includes(result.actorCodename) || narrative.includes(result.actorId);
+    return inUpdates || mentioned;
+  });
+  if (!satisfied) {
+    throw new Error('手动判定未在AI响应中体现，已阻止返回。');
+  }
+};

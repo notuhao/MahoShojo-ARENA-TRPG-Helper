@@ -85,6 +85,22 @@ function expandProviders(providers: AIProvider[]): AIProvider[] {
   return expanded;
 }
 
+function modelMatches(provider: AIProvider, preferredModel?: string) {
+  if (!preferredModel) return true;
+  if (typeof provider.model === 'string') {
+    return provider.model === preferredModel;
+  }
+  if (Array.isArray(provider.model)) {
+    return provider.model.includes(preferredModel);
+  }
+  return false;
+}
+
+function filterProvidersByModel(baseProviders: AIProvider[], preferredModel?: string) {
+  if (!preferredModel) return baseProviders;
+  return baseProviders.filter((provider) => modelMatches(provider, preferredModel));
+}
+
 /**
  * 通用AI流式生成函数
  * @param input - 传递给 promptBuilder 的输入数据
@@ -95,10 +111,11 @@ export async function streamWithAI<T, I = any>(
   input: I,
   generationConfig: GenerationConfig<T, I>
 ) {
-  const providers = expandProviders(config.PROVIDERS);
+  const overrideModel = generationConfig.modelOverride;
+  const providers = expandProviders(filterProvidersByModel(config.PROVIDERS, overrideModel));
   if (providers.length === 0) {
-    log.error("AI服务未配置: 环境变量 AI_PROVIDERS_CONFIG 为空。");
-    throw new Error("AI服务未配置");
+    log.error("AI服务未配置或无匹配模型: 环境变量 AI_PROVIDERS_CONFIG 为空或 model_preference 无效。");
+    throw new Error(overrideModel ? `未找到支持模型 ${overrideModel} 的提供商` : "AI服务未配置");
   }
 
   let providersToTry: AIProvider[];
@@ -114,7 +131,7 @@ export async function streamWithAI<T, I = any>(
 
   for (const provider of providersToTry) {
     const retryCount = provider.retryCount ?? 1;
-    const selectedModel = generationConfig.modelOverride || selectRandomModel(provider.model);
+    const selectedModel = overrideModel || selectRandomModel(provider.model);
     log.info(`尝试提供商: ${provider.name}, 模型: ${selectedModel}`);
 
     for (let attempt = 1; attempt <= retryCount; attempt++) {

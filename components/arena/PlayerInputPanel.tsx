@@ -1,12 +1,12 @@
 // components/arena/PlayerInputPanel.tsx
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Send, Trash2, PlusCircle, Swords } from 'lucide-react';
 import type {
   ManualAdjudicationResult,
   SessionCharacter,
 } from '@/lib/types/arena';
-import { MANUAL_SUCCESS_LEVELS } from '@/lib/schemas/gmTurnSchemas';
+import { MANUAL_SUCCESS_LEVELS, type GmTurnResponse } from '@/lib/schemas/gmTurnSchemas';
 import { generateId } from '@/lib/utils/id';
 
 interface PlayerInputPanelProps {
@@ -20,6 +20,7 @@ interface PlayerInputPanelProps {
   disabled?: boolean;
   isProcessing: boolean;
   lastPrompt?: string | null;
+  pauseReason?: GmTurnResponse['pause_reason'];
 }
 
 interface ManualFormState {
@@ -55,6 +56,7 @@ const PlayerInputPanel: React.FC<PlayerInputPanelProps> = ({
   disabled,
   isProcessing,
   lastPrompt,
+  pauseReason,
 }) => {
   const [showManualForm, setShowManualForm] = useState(false);
   const [formState, setFormState] = useState<ManualFormState>(INITIAL_FORM_STATE);
@@ -63,6 +65,25 @@ const PlayerInputPanel: React.FC<PlayerInputPanelProps> = ({
     () => !!currentInput.trim() || manualResults.length > 0,
     [currentInput, manualResults.length],
   );
+
+  useEffect(() => {
+    if (pauseReason === 'MANUAL_ADJUDICATION') {
+      setShowManualForm(true);
+    }
+  }, [pauseReason]);
+
+  const pauseReasonTips: Partial<Record<GmTurnResponse['pause_reason'], string>> = {
+    MANUAL_ADJUDICATION: '需要先完成手动判定，请录入骰点与结果。',
+    PLAYER_CHOICE: '这是玩家抉择节点，可直接选择行动按钮或自行输入。',
+    PLAYER_INPUT: '等待玩家自由输入，描述你想做的事。',
+    LEVEL_UP: '角色成长触发，请完成加点后继续。',
+    EPILOGUE_SUGGESTION: '故事即将收束，可选择是否进入收尾。',
+  };
+
+  const quickChoices = useMemo(() => {
+    if (pauseReason !== 'PLAYER_CHOICE') return [] as string[];
+    return ['发动协同攻击', '暂时后撤整备', '尝试与对手谈判'];
+  }, [pauseReason]);
 
   const handleSubmitManual = () => {
     if (!formState.actorId || !formState.actionSummary || !formState.skillOrAttribute) {
@@ -109,6 +130,12 @@ const PlayerInputPanel: React.FC<PlayerInputPanelProps> = ({
         </div>
       )}
 
+      {pauseReason && pauseReasonTips[pauseReason] && (
+        <div className="mb-3 rounded-xl border border-dashed border-purple-300 bg-purple-50/70 p-3 text-xs text-purple-800" data-testid="pause-reason-hint">
+          当前暂停原因：<strong>{pauseReason}</strong> — {pauseReasonTips[pauseReason]}
+        </div>
+      )}
+
       <textarea
         className="h-32 w-full resize-none rounded-xl border border-slate-200 bg-white/80 p-3 text-sm text-slate-700 shadow-inner focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
         placeholder="描述你的角色要做什么，或回应 GM 的提问……"
@@ -116,6 +143,21 @@ const PlayerInputPanel: React.FC<PlayerInputPanelProps> = ({
         onChange={(event) => onInputChange(event.target.value)}
         disabled={disabled || isProcessing}
       />
+
+      {quickChoices.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2" data-testid="quick-choice-group">
+          {quickChoices.map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              className="rounded-full border border-purple-300 bg-white px-3 py-1 text-xs text-purple-700 transition hover:bg-purple-100"
+              onClick={() => onInputChange(choice)}
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
+      )}
 
       {manualResults.length > 0 && (
         <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">

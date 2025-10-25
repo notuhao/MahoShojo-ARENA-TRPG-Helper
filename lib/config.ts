@@ -13,6 +13,12 @@ export interface AIProvider {
   weight?: number; // 负载均衡权重，数值越大被选中概率越高
 }
 
+export interface OfficialModelOption {
+  id: string;
+  label: string;
+  provider?: string;
+}
+
 // 解析 AI 提供商配置的函数
 const parseAIProviders = (): AIProvider[] => {
   // JSON 配置方式
@@ -82,12 +88,25 @@ const getLoadBalanceStrategy = (): string => {
   return process.env.AI_LOAD_BALANCE_STRATEGY || 'random';
 };
 
+const parseOfficialModels = (): OfficialModelOption[] => {
+  const raw = process.env.AI_OFFICIAL_MODELS;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as OfficialModelOption[];
+    return parsed.filter((item) => item?.id && item?.label);
+  } catch (error) {
+    console.warn('解析 AI_OFFICIAL_MODELS 失败:', error);
+    return [];
+  }
+};
+
 export const config = {
   // Vercel AI 配置
   API_PAIRS: parseApiPairs(),
   MODEL: getDefaultModel(),
   PROVIDERS: getAPIProviders(),
   LOAD_BALANCE_STRATEGY: getLoadBalanceStrategy(),
+  OFFICIAL_MODELS: parseOfficialModels(),
 
   // 数据卡管理配置
   DEFAULT_DATA_CARD_CAPACITY: 20,

@@ -6,9 +6,9 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     globals: true,
-    environment: 'node',
-    setupFiles: [],
-    include: ['tests/**/*.test.ts'],
+    environment: 'jsdom',
+    setupFiles: ['./tests/setupTests.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     alias: {
       '@': resolve(__dirname, './'),
     },
