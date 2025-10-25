@@ -1,0 +1,133 @@
+{
+  "characterSheet": {
+    "powerLevel": "flower",
+    "info": {
+      "realName": "林昀",
+      "codename": "翠雀",
+      "belief": "保护女儿林小璐——这是她与亡妻最后的、也是最重要的羁绊。她不再为遥远的正义而战，而是为了守护触手可及的亲情，为了改变那曾经夺走挚爱的悲剧命运而挥舞力量。她的战斗，是对过去悔恨的弥补，也是对未来的承诺。",
+      "background": "翠雀曾以“矢车菊”之名守护方亭市，与同为魔法少女的安雅（代号“樱”）并肩作战，两人是拯救了城市的英雄。但因为某些不可言说的隐秘，矢车菊选择了隐退，回归平凡的职场生活，并独自抚养女儿。多年后，为了保护自己唯一的亲人，时隔十九年再度激活心之花，以“翠雀”为代号重返战场。",
+      "appearance": "藏青底色的洛丽塔风格长裙，点缀着繁复而华丽的缎带。整体设计古典而沉稳，体现了其作为前辈魔法少女的强大与经验，同时兼具优雅与威严。头上佩戴着一顶大大的同色系波奈特帽，长长的蓝色秀发在脑后被工整地绑成公主辫。没有任何多余的饰品，于简约中彰显着自信。以深邃的藏青色与蓝色为主色调，辅以少量的白色点缀。整体形象既有娇小的体型，又散发着与其外表不符的成熟与威严。战斗时冷静淡漠的神情与强大的实力，完美诠释了“身经百战的前辈”这一形象。矮小体型。",
+      "faction": "魔法国度",
+      "customFaction": ""
+    },
+    "attributes": {
+      "STR": 20,
+      "CON": 30,
+      "AGI": 40,
+      "MAG": 70,
+      "WILL": 80,
+      "PER": 40,
+      "CHM": 30
+    },
+    "skills": {
+      "brawl": 40,
+      "firearms": 5,
+      "throw": 5,
+      "dodge": 20,
+      "channel": 30,
+      "ward": 10,
+      "mystic_lore": 20,
+      "persuade": 10,
+      "intimidate": 15,
+      "empathy": 10,
+      "perform": 5,
+      "science": 5,
+      "medicine": 10,
+      "investigate": 10,
+      "stealth": 10,
+      "athletics": 15,
+      "sleight_of_hand": 0,
+      "mysticLore": 15,
+      "sleightOfHand": 5
+    },
+    "hp": {
+      "max": 5,
+      "current": 5
+    },
+    "mp": {
+      "max": 14,
+      "current": 14
+    },
+    "radiance": {
+      "max": 16,
+      "current": 16
+    },
+    "shadowPoints": 0,
+    "magicConstruct": {
+      "name": "织命",
+      "description": "多形态魔装，包括魔力线团、一把雕刻着繁复花纹的小巧裁衣剪刀和一把尺子。线团是基础，可以制造用于探测、束缚和攻击的魔力丝线；剪刀形态能够剪断“概念”，但因过去的损伤而濒临破碎；尺子形态可以锁定距离，但现已破碎。"
+    },
+    "powers": [
+      {
+        "name": "丝线监牢",
+        "effectTagId": "bind",
+        "rank": 1,
+        "modifierTagIds": [
+          "area_burst",
+          "range_long",
+          "selective_exemption",
+          "multi_target",
+          "duration_concentration",
+          "duration_lingering",
+          "selective_focus"
+        ],
+        "description": "翠雀操纵魔力丝线，在目标周围瞬间编织成一个牢笼，将其束缚。范围为以目标为中心，半径5米范围内的所有敌人。"
+      },
+      {
+        "name": "命运裁剪",
+        "effectTagId": "erase_concept",
+        "rank": 1,
+        "modifierTagIds": [
+          "selective_focus",
+          "duration_lingering",
+          "selective_exemption",
+          "range_long",
+          "area_burst",
+          "multi_target",
+          "drawback_mana"
+        ],
+        "description": "翠雀挥舞裁衣剪刀，剪断目标身上某种属性或能力的概念。"
+      }
+    ],
+    "wonderlandRule": {
+      "description": "展开奇境后，银蓝的丝线自夜空之中垂落，编制成一座闪耀着纯净光芒的蔚蓝色城堡。所有奇境之中的生命都将性命相连，只要其中一个个体失去了什么，其她所有的个体（包括翠雀自己）都会失去同样的东西。"
+    },
+    "blooming": {
+      "description": "无法繁开。",
+      "abilities": [
+        {
+          "name": "魔力超标",
+          "description": "翠雀已经无法进行繁开，但是她也遇不上会繁开的对手。即使真的遇上了繁开，她的魔力也是普通魔法少女的2至10倍，而且战斗经验丰富，足以在不能繁开的情况下抗衡繁开的对手。"
+        }
+      ]
+    },
+    "gemScepter": {
+      "name": "无",
+      "ability": "无"
+    },
+    "bonds": [
+      {
+        "id": 1678886403000,
+        "target": "林小璐（白玫）",
+        "description": "女儿，她唯一的亲人，也是她活下去的动力。",
+        "statusAndNotes": "关系紧张，但爱意深厚。",
+        "radianceImpact": 7
+      }
+    ],
+    "statusEffects": [],
+    "negativeTraits": ""
+  },
+  "customSkills": [],
+  "customPowerTags": [],
+  "pointSummary": {
+    "spentAttributePoints": 310,
+    "attributePointsLimit": 280,
+    "isAttributePointsOverLimit": true,
+    "spentSkillPoints": 240,
+    "skillPointsLimit": 150,
+    "isSkillPointsOverLimit": true,
+    "spentPcpPoints": 40,
+    "pcpLimit": 20,
+    "isPcpOverLimit": true
+  }
+}

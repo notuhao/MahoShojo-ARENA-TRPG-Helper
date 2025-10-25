@@ -1,0 +1,125 @@
+{
+  "characterSheet": {
+    "powerLevel": "sprout",
+    "info": {
+      "realName": "林小璐",
+      "codename": "白玫",
+      "belief": "她最初的愿望是逃离压抑的家庭生活与现实，成为动画中那样闪闪发光、强大帅气的魔法少女。这份略带天真的理想主义，在见证了前辈“翠雀”的身姿后，逐渐转变为“想要成为像她一样的人”的坚定信念。比起挫败敌人，她更看重“保护队友”，认为同伴是不可替代的存在。她坚信命运并非注定，而是可以通过战斗与选择去改变的。",
+      "background": "父母离异，母亲去世，与父亲关系疏离。在一次偶然事件中，被魔法少女翠雀所救，并因此立志成为魔法少女。",
+      "appearance": "淡蓝色连衣裙，腰间围着明黄色的束腰，在背后系成一个夸张的蝴蝶结。胸口别着一个圆形的宝石，头戴一顶小礼帽。金色双马尾，整体给人以童话般可爱、天真烂漫的印象，初看之下完全不像战斗人员，更像是舞会上跑出来的小女孩。矮小体型。",
+      "faction": "魔法国度",
+      "customFaction": ""
+    },
+    "attributes": {
+      "STR": 20,
+      "CON": 25,
+      "AGI": 40,
+      "MAG": 75,
+      "WILL": 50,
+      "PER": 45,
+      "CHM": 30
+    },
+    "skills": {
+      "brawl": 10,
+      "firearms": 5,
+      "throw": 5,
+      "dodge": 30,
+      "channel": 40,
+      "ward": 0,
+      "mystic_lore": 0,
+      "persuade": 10,
+      "intimidate": 5,
+      "empathy": 20,
+      "perform": 10,
+      "science": 5,
+      "medicine": 5,
+      "investigate": 5,
+      "stealth": 10,
+      "athletics": 0,
+      "sleight_of_hand": 0,
+      "mysticLore": 5,
+      "sleightOfHand": 5
+    },
+    "hp": {
+      "max": 5,
+      "current": 5
+    },
+    "mp": {
+      "max": 15,
+      "current": 15
+    },
+    "radiance": {
+      "max": 10,
+      "current": 10
+    },
+    "shadowPoints": 0,
+    "magicConstruct": {
+      "name": "王钥",
+      "description": "一根洁白的权杖。可以变形为一柄浅蓝色的长枪，并附带丝线。丝线可以引导长枪锁定并贯穿敌人。"
+    },
+    "powers": [
+      {
+        "name": "丝线引导",
+        "effectTagId": "movement",
+        "rank": 5,
+        "modifierTagIds": [
+          "range_long",
+          "duration_concentration"
+        ],
+        "description": "以极快的速度将丝线射出，连接目标，随后长枪可以被引导到丝线连接的任何一点。"
+      },
+      {
+        "name": "贯穿一击",
+        "effectTagId": "damage",
+        "rank": 8,
+        "modifierTagIds": [
+          "selective_focus",
+          "mode_switch"
+        ],
+        "description": "长枪可以刺穿丝线锚定的任何物体，造成高额的物理伤害。"
+      }
+    ],
+    "wonderlandRule": {
+      "description": "尚未抵达“蕾”级，未觉醒奇境。"
+    },
+    "blooming": {
+      "description": "尚未抵达“花”级，未觉醒繁开。",
+      "abilities": []
+    },
+    "gemScepter": {
+      "name": "未知",
+      "ability": "未知"
+    },
+    "bonds": [
+      {
+        "id": 1678886403000,
+        "target": "林昀（翠雀）",
+        "description": "林小璐的父亲，也是她的魔法少女前辈‘翠雀’。关系疏离而复杂，充满了误解与矛盾。",
+        "statusAndNotes": "复杂、疏离，但林小璐对其抱有强烈的崇拜之情。",
+        "radianceImpact": 2
+      },
+      {
+        "id": 1678886404000,
+        "target": "夏凉（小锦）, 白静萱（薄雪）",
+        "description": "在战斗中结识的同伴，逐渐建立起了深厚的友谊。",
+        "statusAndNotes": "友谊加深中",
+        "radianceImpact": 1
+      }
+    ],
+    "statusEffects": [],
+    "negativeTraits": ""
+  },
+  "customSkills": [],
+  "customPowerTags": [],
+  "pointSummary": {
+    "spentAttributePoints": 285,
+    "attributePointsLimit": 280,
+    "isAttributePointsOverLimit": true,
+    "spentSkillPoints": 170,
+    "skillPointsLimit": 150,
+    "isSkillPointsOverLimit": true,
+    "spentPcpPoints": 25,
+    "pcpLimit": 20,
+    "isPcpOverLimit": true
+  }
+}

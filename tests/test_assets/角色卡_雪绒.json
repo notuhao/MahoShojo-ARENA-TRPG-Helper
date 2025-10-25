@@ -1,0 +1,148 @@
+{
+  "characterSheet": {
+    "powerLevel": "flower",
+    "info": {
+      "realName": "凌雪",
+      "codename": "雪绒",
+      "belief": "她坚信‘大道至简’，世间万物的终极真理与力量，皆蕴藏于最纯粹、最直接的形式之中。她厌恶虚无的矫饰与无谓的繁杂。她为守护存在的‘本真’而战，对抗那些试图用过度复杂或绝对虚无来歪曲、消解世界本质的力量。她的愿望，是维系一个清晰、纯净且有意义的世界。",
+      "background": "自幼在偏远山区长大，深受自然淳朴之风的影响，养成了她直率、简洁的性格和处事方式。她对世间复杂的规则与纷争感到厌倦，渴望世界回归最纯粹的本真。一次偶然的机会，她获得了净云扇，并以此对抗那些企图以复杂的手段扰乱世界秩序的敌人。",
+      "appearance": "她身着一袭流线型剪裁的膝长白色连衣裙，裙身设计简洁，无多余装饰，仅在领口和袖口处点缀有天蓝色细边。材质轻盈飘逸，确保行动自如，整体造型干净利落，不带一丝冗余。",
+      "faction": "魔法国度",
+      "customFaction": ""
+    },
+    "attributes": {
+      "STR": 60,
+      "CON": 40,
+      "AGI": 50,
+      "MAG": 60,
+      "WILL": 40,
+      "PER": 40,
+      "CHM": 20
+    },
+    "skills": {
+      "brawl": 60,
+      "firearms": 30,
+      "throw": 5,
+      "dodge": 20,
+      "channel": 50,
+      "ward": 15,
+      "mystic_lore": 0,
+      "persuade": 5,
+      "intimidate": 0,
+      "empathy": 10,
+      "perform": 0,
+      "science": 0,
+      "medicine": 5,
+      "investigate": 5,
+      "stealth": 10,
+      "athletics": 10,
+      "sleight_of_hand": 0,
+      "mysticLore": 10,
+      "sleightOfHand": 5
+    },
+    "hp": {
+      "max": 10,
+      "current": 10
+    },
+    "mp": {
+      "max": 12,
+      "current": 12
+    },
+    "radiance": {
+      "max": 8,
+      "current": 8
+    },
+    "shadowPoints": 0,
+    "magicConstruct": {
+      "name": "净云扇",
+      "description": "一柄精致而流线型的折扇，名为“净云扇”。扇骨由纯粹的魔力结晶构成，扇面由轻盈而坚韧的云气凝结而成，其上隐约可见流动的云纹。它看似轻盈，实则坚韧无比，能够随心所欲地扇动，拨开世间一切迷雾，击碎虚妄的表象。它不仅是施法的媒介，更是她“大道至简”理念的具现。"
+    },
+    "powers": [
+      {
+        "name": "简化之雾",
+        "effectTagId": "debuff",
+        "rank": 5,
+        "modifierTagIds": [
+          "area_burst",
+          "range_long",
+          "duration_concentration"
+        ],
+        "description": "扇动净云扇，生成一层细密的、具有净化作用的云雾，覆盖一定范围。此雾对任何复杂的魔法效果、幻象或诅咒具有极强的解析和剥离能力，能使其复杂性降低，甚至直接消散，降低目标的属性和能力效果。"
+      },
+      {
+        "name": "直击之风",
+        "effectTagId": "damage",
+        "rank": 15,
+        "modifierTagIds": [
+          "range_long",
+          "area_line"
+        ],
+        "description": "凝聚魔力于扇尖，挥出强劲而直接的气流冲击。这股风暴无视冗余的防御机制和花哨的能量屏障，以最直接的方式打击目标，造成基于魔法少女魔力属性的三倍伤害。"
+      },
+      {
+        "name": "清明之纱",
+        "effectTagId": "shield",
+        "rank": 2,
+        "modifierTagIds": [
+          "duration_concentration"
+        ],
+        "description": "展开扇面，形成一道半透明的云纱屏障。此屏障能有效过滤混乱的能量波动和复杂的精神干扰，使魔法少女在对抗多变且繁琐的敌人时，保持心境清明、洞察力不受影响，并抵御一定的精神伤害和控制效果。"
+      }
+    ],
+    "wonderlandRule": {
+      "description": "奇境规则：破繁归真。任何试图以复杂机制、多重因果、虚假表象、或非线性时间扰乱或伤害目标的攻击或效果，其复杂性越高，就越容易被此规则识别并简化至最基本、最脆弱的状态，甚至直接崩解。此规则能将“看似强大”的复杂存在还原为“本质简单”的无力，甚至将其根基彻底瓦解，使其无法成立。"
+    },
+    "blooming": {
+      "description": "“澄净云霄”状态下的魔装，从原有的“净云扇”升华为一对巨大的、由纯粹云雾能量凝结而成的“澄净云霄天秤”。这两片天秤悬浮于魔法少女身侧，既是攻防一体的武器，亦是象征其裁定与平衡法则的具现。它们可如巨刃般挥舞，亦可化为坚不可摧的云盾。",
+      "abilities": [
+        {
+          "name": "法则裁定",
+          "description": "将“破繁归真”规则的效力放大至法则层面，能够直接裁定并瓦解敌人的复杂能力体系，使其从概念上就无法成立或运转。"
+        },
+        {
+          "name": "本源澄澈",
+          "description": "能够短时间内将自身或指定区域内的一切外部复杂干扰（包括魔法、精神影响、环境幻象等）完全剥离，只剩下最纯粹的本质，从而达到绝对的清晰和免疫。"
+        },
+        {
+          "name": "真理之锋",
+          "description": "挥舞天秤，可释放出能够斩断因果、击穿多维空间障碍的纯粹力量冲击，直接命中并瓦解敌人的核心存在，无视一切复杂防御。"
+        }
+      ]
+    },
+    "gemScepter": {
+      "name": "暂无",
+      "ability": "暂无"
+    },
+    "bonds": [
+      {
+        "id": 1678886403000,
+        "target": "她的伙伴们",
+        "description": "她与伙伴们之间的情谊并非建立在复杂的承诺或契约之上，而是源于对彼此的信任和理解，以及在共同战斗中建立起来的默契。",
+        "statusAndNotes": "稳定",
+        "radianceImpact": 4
+      },
+      {
+        "id": 1678886404000,
+        "target": "净云扇",
+        "description": "净云扇不仅仅是她的武器，更是她理念的象征，是她力量的来源。她与它之间有着一种超越工具与使用者关系的特殊联系。",
+        "statusAndNotes": "稳定",
+        "radianceImpact": 3
+      }
+    ],
+    "statusEffects": [],
+    "negativeTraits": ""
+  },
+  "customSkills": [],
+  "customPowerTags": [],
+  "pointSummary": {
+    "spentAttributePoints": 310,
+    "attributePointsLimit": 280,
+    "isAttributePointsOverLimit": true,
+    "spentSkillPoints": 240,
+    "skillPointsLimit": 150,
+    "isSkillPointsOverLimit": true,
+    "spentPcpPoints": 48,
+    "pcpLimit": 20,
+    "isPcpOverLimit": true
+  }
+}

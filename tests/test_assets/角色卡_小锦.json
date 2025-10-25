@@ -1,0 +1,126 @@
+{
+  "characterSheet": {
+    "powerLevel": "sprout",
+    "info": {
+      "realName": "夏凉",
+      "codename": "小锦",
+      "belief": "童年家庭破碎的经历，让她极度渴望与他人建立“真正的联系”，却又因害怕受伤而用玩世不恭的态度伪装自己。成为魔法少女，是她在人生最低谷时抓住的一缕光，为的是找到一个可以称之为“家”的归宿。对她而言，“保护队友”远比“挫败敌人”更重要，因为同伴是她失而复得的珍宝。她战斗的核心，就是用自己的智慧与力量去守护这份来之不易的温暖。",
+      "background": "背负着母亲杀死父亲的悲惨过去，她长久以来孤身一人，在虚假的“朋友”关系中寻求慰藉，内心极度缺乏安全感与爱。在被翠雀邀请成为魔法少女后，她第一次感受到了“被需要”的感觉。翠雀、白玫、薄雪这些同伴，共同构成了她心中新的“家”，这份羁绊是治愈她内心创伤的良药，也是她战斗意志的全部来源。她逐渐学会信任，并决心不惜一切代价保护这个小队。",
+      "appearance": "主体为槿紫色的收腰洋服半身裙，搭配浅黄色的披肩领上衣和半开襟坎肩，胸前有巨大的蝴蝶结。头上戴着绕系黄色缎带的槿紫色软帽，耳垂上挂着一对月牙形的耳坠。从本体黑色的短发变为紫色，发梢微卷。整体打扮时尚而成熟，既有神秘感又不失明快，与其平日的形象有所呼应，但气质上更为华丽。少女体型。",
+      "faction": "魔法国度",
+      "customFaction": ""
+    },
+    "attributes": {
+      "STR": 20,
+      "CON": 30,
+      "AGI": 50,
+      "MAG": 60,
+      "WILL": 45,
+      "PER": 50,
+      "CHM": 30
+    },
+    "skills": {
+      "brawl": 0,
+      "firearms": 5,
+      "throw": 5,
+      "dodge": 30,
+      "channel": 30,
+      "ward": 0,
+      "mystic_lore": 0,
+      "persuade": 15,
+      "intimidate": 5,
+      "empathy": 10,
+      "perform": 15,
+      "science": 5,
+      "medicine": 0,
+      "investigate": 10,
+      "stealth": 15,
+      "athletics": 10,
+      "sleight_of_hand": 0,
+      "mysticLore": 10,
+      "sleightOfHand": 5
+    },
+    "hp": {
+      "max": 5,
+      "current": 5
+    },
+    "mp": {
+      "max": 12,
+      "current": 12
+    },
+    "radiance": {
+      "max": 9,
+      "current": 9
+    },
+    "shadowPoints": 0,
+    "magicConstruct": {
+      "name": "引离",
+      "description": "一面巴掌大的梳妆镜，可以分化为最多五面，并在一定范围内自由操控。魔力反射：在一定限度内阻挡并反射魔力攻击。魔力传送：将接触一面镜子的魔力从另一面镜子中传送出来，改变攻击方向。形态变化：可以改变镜子的大小和数量。“引离”是夏凉（小锦）内心渴望与外界建立“联系”又害怕受伤的矛盾体现。镜子既是连接的通道，也是隔绝与反射伤害的盾牌。其能力极具战术价值，偏向于辅助与控制，反映出她敏锐的观察力和聪慧的头脑。"
+    },
+    "powers": [
+      {
+        "name": "光影交错",
+        "effectTagId": "movement",
+        "rank": 4,
+        "modifierTagIds": [
+          "selective_focus"
+        ],
+        "description": "小锦通过镜面反射和折射光线，瞬间改变自身或友军的移动轨迹，快速躲避攻击或进行战术性位移。每次使用需选择一个目标，并对其进行精准的位移操控，无法对多个目标同时使用。"
+      },
+      {
+        "name": "镜面反射",
+        "effectTagId": "shield",
+        "rank": 4,
+        "modifierTagIds": [
+          "duration_concentration",
+          "drawback_mana"
+        ],
+        "description": "小锦将镜面作为护盾，抵挡来自敌人的魔力攻击。持续时间取决于小锦的专注程度，专注越高，护盾越坚固。"
+      },
+      {
+        "name": "镜中世界",
+        "effectTagId": "create",
+        "rank": 1,
+        "modifierTagIds": [
+          "selective_exemption"
+        ],
+        "description": "小锦制造出一个短暂的镜中世界，将目标短暂地困在其中，可以用来躲避攻击或创造有利战机。"
+      }
+    ],
+    "wonderlandRule": {
+      "description": "尚未抵达“蕾”级，未觉醒奇境。"
+    },
+    "blooming": {
+      "description": "尚未抵达“花”级，未觉醒繁开。",
+      "abilities": []
+    },
+    "gemScepter": {
+      "name": "未知",
+      "ability": "未知"
+    },
+    "bonds": [
+      {
+        "id": 1678886405000,
+        "target": "翠雀",
+        "description": "翠雀是邀请夏凉成为魔法少女的人，也是她在这个残酷世界里第一个真正意义上的朋友和依靠。这份信任与羁绊，支撑着夏凉克服内心的恐惧，勇敢地面对一切挑战。",
+        "statusAndNotes": "已加深",
+        "radianceImpact": 4
+      }
+    ],
+    "statusEffects": [],
+    "negativeTraits": ""
+  },
+  "customSkills": [],
+  "customPowerTags": [],
+  "pointSummary": {
+    "spentAttributePoints": 285,
+    "attributePointsLimit": 280,
+    "isAttributePointsOverLimit": true,
+    "spentSkillPoints": 170,
+    "skillPointsLimit": 150,
+    "isSkillPointsOverLimit": true,
+    "spentPcpPoints": 25,
+    "pcpLimit": 20,
+    "isPcpOverLimit": true
+  }
+}

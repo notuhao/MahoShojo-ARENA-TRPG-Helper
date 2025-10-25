@@ -1,0 +1,133 @@
+{
+  "characterSheet": {
+    "powerLevel": "sprout",
+    "info": {
+      "realName": "白静萱",
+      "codename": "薄雪",
+      "belief": "她的核心信念源于“复仇”与“报恩”。父母在残兽袭击中丧生，让她对残兽怀有刻骨的仇恨；而在自己濒死时被魔法少女“樱”所救，则让她对“魔法少女”这一身份抱有至高的感激与憧憬。她战斗的动力，一方面是为了向夺走亲人的残兽复仇，另一方面也是为了成为像“樱”那样能够拯救他人的英雄。为此，她展现出强烈的自我牺牲倾向，愿意为保护同伴付出一切。",
+      "background": "父母在残兽袭击中丧生，自己也身患怪病，被魔法少女‘樱’所救的经历是她人生的转折点。她对‘樱’抱有极深的感激与憧憬，并以此为精神支柱。",
+      "appearance": "主体为浅绿色的舞台礼服，上身为白色，泡泡袖上点缀着浅绿色的细碎花纹。长长的礼裙几乎拖到脚底，但不影响行动。戴着长袖臂套，没有其他多余饰品。浅绿色与白色。绿色的侧马尾，发梢混着几缕白色挑染。双瞳为黄绿异色（右眼绿色，左眼黄色）。虽然体型和小学生一样，但平时的整体气质安静、懂事，像个早熟的孩子，但其中又蕴含着一种神圣感与强大的生命力。不过，进入战斗状态后，可能会如同野兽一般激进、难以服从指令。矮小体型。",
+      "faction": "魔法国度",
+      "customFaction": ""
+    },
+    "attributes": {
+      "STR": 35,
+      "CON": 50,
+      "AGI": 40,
+      "MAG": 70,
+      "WILL": 20,
+      "PER": 40,
+      "CHM": 30
+    },
+    "skills": {
+      "brawl": 10,
+      "firearms": 0,
+      "throw": 5,
+      "dodge": 20,
+      "channel": 30,
+      "ward": 10,
+      "mystic_lore": 0,
+      "persuade": 10,
+      "intimidate": 5,
+      "empathy": 20,
+      "perform": 20,
+      "science": 0,
+      "medicine": 20,
+      "investigate": 0,
+      "stealth": 5,
+      "athletics": 10,
+      "sleight_of_hand": 0,
+      "mysticLore": 5,
+      "sleightOfHand": 0
+    },
+    "hp": {
+      "max": 9,
+      "current": 9
+    },
+    "mp": {
+      "max": 14,
+      "current": 14
+    },
+    "radiance": {
+      "max": 4,
+      "current": 4
+    },
+    "shadowPoints": 0,
+    "magicConstruct": {
+      "name": "天音",
+      "description": "“天音”是白静萱（薄雪）“治愈”与“生命”特质的体现。她的魔力天生带有强大的治愈和增益效果，魔装八音盒通过音乐的形式将这种力量扩散开来，是一种非常强大的辅助型魔装。其能力的核心是“赋予生命力”。"
+    },
+    "powers": [
+      {
+        "name": "生命之歌",
+        "effectTagId": "heal",
+        "rank": 4,
+        "modifierTagIds": [
+          "area_burst"
+        ],
+        "description": "奏响治愈的乐章，对周围一定范围内的所有目标进行强大的治疗。治疗量取决于自身魔力值和技能等级。"
+      },
+      {
+        "name": "活化之音",
+        "effectTagId": "buff",
+        "rank": 2,
+        "modifierTagIds": [
+          "selective_focus",
+          "duration_lingering"
+        ],
+        "description": "演奏轻快的旋律，为一名目标角色提供持续的攻击力或防御力提升。持续时间取决于自身魔力值和技能等级。"
+      },
+      {
+        "name": "荆棘之歌",
+        "effectTagId": "shield",
+        "rank": 2,
+        "modifierTagIds": [
+          "multi_target"
+        ],
+        "description": "演奏充满力量的乐曲，为多个友方角色施加一个吸收伤害的护盾，护盾强度取决于自身魔力值和技能等级。"
+      }
+    ],
+    "wonderlandRule": {
+      "description": "尚未抵达“蕾”级，未觉醒奇境。"
+    },
+    "blooming": {
+      "description": "尚未抵达“花”级，未觉醒繁开。",
+      "abilities": []
+    },
+    "gemScepter": {
+      "name": "未知",
+      "ability": "未知"
+    },
+    "bonds": [
+      {
+        "id": 1678886403000,
+        "target": "已故魔法少女“樱”（安雅）",
+        "description": "救命之恩的深刻羁绊，是她成为魔法少女的精神支柱与力量源泉。",
+        "statusAndNotes": "已加深",
+        "radianceImpact": 2
+      },
+      {
+        "id": 1678886404000,
+        "target": "小队成员",
+        "description": "视为需要用生命去守护的新家人。",
+        "statusAndNotes": "正在加深",
+        "radianceImpact": 1
+      }
+    ],
+    "statusEffects": [],
+    "negativeTraits": ""
+  },
+  "customSkills": [],
+  "customPowerTags": [],
+  "pointSummary": {
+    "spentAttributePoints": 285,
+    "attributePointsLimit": 280,
+    "isAttributePointsOverLimit": true,
+    "spentSkillPoints": 170,
+    "skillPointsLimit": 150,
+    "isSkillPointsOverLimit": true,
+    "spentPcpPoints": 25,
+    "pcpLimit": 20,
+    "isPcpOverLimit": true
+  }
+}
