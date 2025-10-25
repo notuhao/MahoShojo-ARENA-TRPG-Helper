@@ -1,6 +1,6 @@
 // lib/ai.ts
 
-import { streamObject, NoObjectGeneratedError, StreamObjectResult } from "ai";
+import { streamObject, NoObjectGeneratedError, StreamObjectResult, generateObject } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
@@ -101,6 +101,12 @@ function filterProvidersByModel(baseProviders: AIProvider[], preferredModel?: st
   return baseProviders.filter((provider) => modelMatches(provider, preferredModel));
 }
 
+const stripJsonFences = (text: string) =>
+  text
+    .replace(/```json\s*/gi, '')
+    .replace(/```/g, '')
+    .trim();
+
 /**
  * 通用AI流式生成函数
  * @param input - 传递给 promptBuilder 的输入数据
@@ -144,10 +150,12 @@ export async function streamWithAI<T, I = any>(
           prompt: generationConfig.promptBuilder(input),
           temperature: generationConfig.temperature,
           maxTokens: generationConfig.maxTokens,
-          mode: provider.mode || 'auto',
+          mode: provider.mode || 'json',
+          experimental_repairText: async ({ text }: { text: string }) =>
+            stripJsonFences(text),
         });
         log.info(`提供商 ${provider.name} 成功响应 (尝试 ${attempt}/${retryCount})`);
-        
+
         return result;
 
       } catch (error) {
@@ -155,6 +163,22 @@ export async function streamWithAI<T, I = any>(
         log.warn(`提供商 ${provider.name} 尝试 ${attempt}/${retryCount} 失败`, { error });
         if (NoObjectGeneratedError.isInstance(error)) {
             log.warn('AI返回内容无法解析为JSON', { text: error.text });
+            const parsed = tryParseFromErrorText(error.text, generationConfig.schema);
+            if (parsed) {
+              log.info(`提供商 ${provider.name} 通过 error.text 解析成功`);
+              return wrapAsStreamResult(parsed as T);
+            }
+            const repaired = await tryFallbackGenerate(
+              llm,
+              selectedModel,
+              generationConfig,
+              provider,
+              input,
+            );
+            if (repaired) {
+              log.info(`提供商 ${provider.name} 经过 repairText 成功返回对象`);
+              return wrapAsStreamResult(repaired);
+            }
         }
         if (attempt < retryCount) await sleep(200); // 重试前稍作等待
       }
@@ -163,4 +187,65 @@ export async function streamWithAI<T, I = any>(
 
   log.error("所有AI提供商均失败", { lastError });
   throw lastError;
+}
+
+async function tryFallbackGenerate<T, I>(
+  llm: ReturnType<typeof createAIClient>,
+  selectedModel: string,
+  generationConfig: GenerationConfig<T, I>,
+  provider: AIProvider,
+  input: I,
+) {
+  try {
+    const { object } = await generateObject({
+      model: llm(selectedModel),
+      schema: generationConfig.schema,
+      system: generationConfig.systemPrompt,
+      prompt: generationConfig.promptBuilder(input),
+      temperature: generationConfig.temperature,
+      maxTokens: generationConfig.maxTokens,
+      mode: provider.mode || 'json',
+      experimental_repairText: async ({ text }: { text: string }) => stripJsonFences(text),
+    });
+    return object as T;
+  } catch (fallbackError) {
+    log.error('fallback generateObject 失败', { fallbackError });
+    return null;
+  }
+}
+
+function tryParseFromErrorText<T>(text: string | undefined, schema: z.ZodSchema<T>) {
+  if (!text) return null;
+  const cleaned = stripJsonFences(text);
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    const parsed = JSON.parse(match[0]);
+    return schema.parse(parsed);
+  } catch (error) {
+    log.warn('error.text JSON 解析失败', { error });
+    return null;
+  }
+}
+
+function wrapAsStreamResult<T>(object: T): StreamObjectResult<T, T, any> {
+  return {
+    object: Promise.resolve(object),
+    warnings: Promise.resolve(undefined as any),
+    usage: Promise.resolve(undefined as any),
+    providerMetadata: Promise.resolve(undefined as any),
+    request: Promise.resolve(undefined as any),
+    response: Promise.resolve(undefined as any),
+    finishReason: Promise.resolve('stop' as any),
+    partialObjectStream: (async function* () {})(),
+    elementStream: (async function* () {})(),
+    textStream: (async function* () {})(),
+    fullStream: (async function* () {})(),
+    pipeTextStreamToResponse() {},
+    toTextStreamResponse() {
+      return new Response(JSON.stringify(object), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    },
+  };
 }
