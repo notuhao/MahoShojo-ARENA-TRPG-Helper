@@ -13,7 +13,7 @@ import levelingData from '../trpg/data/leveling.json';
  */
 
 // 动态数值 (HP, MP, 光辉)
-const dynamicStatSchema = z.object({
+export const dynamicStatSchema = z.object({
   current: z.number().describe('当前值'),
   max: z.number().describe('最大值'),
 });
@@ -103,7 +103,7 @@ const bondSchema = z.object({
 
 
 // 组装成完整的角色卡 Schema
-const characterSheetSchema = z.object({
+export const characterSheetSchema = z.object({
   info: characterInfoSchema,
   attributes: characterAttributesSchema,
   skills: skillPointsSchema,
@@ -113,11 +113,23 @@ const characterSheetSchema = z.object({
   blooming: bloomingSchema,
   gemScepter: gemScepterSchema,
   bonds: z.array(bondSchema),
+  powerLevel: z.string().optional().describe('角色当前处于 leveling.json 中定义的力量层级'),
+  hp: dynamicStatSchema.optional().describe('角色当前的生命值状态'),
+  mp: dynamicStatSchema.optional().describe('角色当前的魔力状态'),
+  radiance: dynamicStatSchema.optional().describe('角色当前的光辉状态'),
+  shadowPoints: z.number().optional().describe('角色当前的阴影值'),
+  statusEffects: z.array(z.object({
+    id: z.number().describe('唯一ID，用于React key'),
+    name: z.string().describe('状态名称'),
+    mechanism: z.string().describe('状态效果的具体机制'),
+    duration: z.string().describe('状态的持续时间或解除条件'),
+  })).optional().describe('当前附着在角色身上的状态效果列表'),
+  negativeTraits: z.string().optional().describe('角色身上的负面特质、诅咒或其他叙事性缺陷'),
   // 注意：hp, mp, radiance, shadowPoints等衍生/动态值由前端根据属性计算或在UI中修改，不要求AI生成
 });
 
 // 自定义技能的 Schema 定义
-const customSkillSchema = z.object({
+export const customSkillSchema = z.object({
     id: z.string().describe("自定义技能的唯一英文ID，例如 'custom_mech_repair'"),
     name: z.string().describe("自定义技能的名称，例如 '魔导机械维修'"),
     attribute: z.string().describe("与此技能相关的核心属性，例如 'MAG+PER'"),
@@ -125,7 +137,7 @@ const customSkillSchema = z.object({
 });
 
 // 自定义能力标签的 Schema 定义
-const customPowerTagSchema = z.object({
+export const customPowerTagSchema = z.object({
     id: z.string().describe("自定义标签的唯一英文ID，例如 'custom_mental_damage'"),
     name: z.string().describe("自定义标签的显示名称，例如 '[精神伤害]'"),
     cost: z.number().describe("该标签的PCP成本"),
@@ -143,3 +155,6 @@ export const aiGeneratedCharacterSchema = z.object({
 
 // 从新的顶层 Schema 推断出最终的 TypeScript 类型
 export type AIGeneratedCharacterData = z.infer<typeof aiGeneratedCharacterSchema>;
+
+export type CharacterSheet = z.infer<typeof characterSheetSchema>;
+export type DynamicStat = z.infer<typeof dynamicStatSchema>;
