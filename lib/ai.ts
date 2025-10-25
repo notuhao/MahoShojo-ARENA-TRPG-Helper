@@ -1,6 +1,6 @@
 // lib/ai.ts
 
-import { streamObject, NoObjectGeneratedError, StreamObjectResult, generateObject } from "ai";
+import { streamObject, NoObjectGeneratedError, StreamObjectResult, generateObject, simulateReadableStream } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
@@ -141,8 +141,8 @@ export async function streamWithAI<T, I = any>(
     log.info(`尝试提供商: ${provider.name}, 模型: ${selectedModel}`);
 
     for (let attempt = 1; attempt <= retryCount; attempt++) {
+      const llm = createAIClient(provider);
       try {
-        const llm = createAIClient(provider);
         const result = await streamObject({
           model: llm(selectedModel),
           schema: generationConfig.schema as z.ZodSchema<T>,
@@ -229,6 +229,7 @@ function tryParseFromErrorText<T>(text: string | undefined, schema: z.ZodSchema<
 }
 
 function wrapAsStreamResult<T>(object: T): StreamObjectResult<T, T, any> {
+  const emptyStream = simulateReadableStream({ chunks: [] });
   return {
     object: Promise.resolve(object),
     warnings: Promise.resolve(undefined as any),
@@ -237,15 +238,15 @@ function wrapAsStreamResult<T>(object: T): StreamObjectResult<T, T, any> {
     request: Promise.resolve(undefined as any),
     response: Promise.resolve(undefined as any),
     finishReason: Promise.resolve('stop' as any),
-    partialObjectStream: (async function* () {})(),
-    elementStream: (async function* () {})(),
-    textStream: (async function* () {})(),
-    fullStream: (async function* () {})(),
+    partialObjectStream: emptyStream as any,
+    elementStream: emptyStream as any,
+    textStream: emptyStream as any,
+    fullStream: emptyStream as any,
     pipeTextStreamToResponse() {},
     toTextStreamResponse() {
       return new Response(JSON.stringify(object), {
         headers: { 'Content-Type': 'application/json' },
       });
     },
-  };
+  } as StreamObjectResult<T, T, any>;
 }
