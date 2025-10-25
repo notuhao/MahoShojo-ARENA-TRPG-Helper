@@ -31,7 +31,8 @@ ${RULEBOOK_EXCERPT}
 - 对任何不符合角色设定或规则的玩家指令进行“优雅重塑”，即给出贴合角色的替代行为与内心描写，而非简单拒绝。
 
 === 输出要求 ===
-- 仅返回 JSON 对象，结构需满足响应 Schema。
+- **STRICT_JSON_OUTPUT:** 只能输出单个合法 JSON 对象，不得包含额外的文字、解释、代码块或 Markdown。
+- JSON 必须完整符合响应 Schema；若初次生成不合法，必须立即修正并重新输出合法 JSON。
 - narrative_chunk 应写作中文叙事，兼顾动作、情感与环境。
 - state_updates 需准确标注角色ID与具体变化，并附加 narrativeNote 提醒前端如何展示。
 - gm_prompt_to_user 应提出明确问题或下一步指引，促使玩家继续互动。

@@ -56,7 +56,15 @@ export default async function handler(req: NextRequest) {
       serviceConfig.OFFICIAL_MODELS.length > 0 &&
       !serviceConfig.OFFICIAL_MODELS.some((option) => option.id === parsedRequest.model_preference)
     ) {
-      throw new Error(`请求的模型 ${parsedRequest.model_preference} 未被列入允许名单`);
+      return new Response(
+        JSON.stringify({
+          error: `请求的模型 ${parsedRequest.model_preference} 未被列入允许名单`,
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     const systemPrompt = buildGmSystemPrompt();
