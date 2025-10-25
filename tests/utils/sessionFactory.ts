@@ -5,13 +5,10 @@ import type {
   StateDeltaEntry,
 } from '@/lib/types/arena';
 import { generateId } from '@/lib/utils/id';
+import { computeDerivedStats } from '@/lib/trpg/runtime';
 
-export const buildRuntimeState = (overrides?: Partial<SessionCharacter['runtime']>): SessionCharacter['runtime'] => ({
-  hp: { current: 8, max: 8 },
-  mp: { current: 8, max: 8 },
-  radiance: { current: 6, max: 6 },
-  shadowPoints: 0,
-  statuses: [],
+export const buildRuntimeState = (sheet: SessionCharacter['sheet'], overrides?: Partial<SessionCharacter['runtime']>): SessionCharacter['runtime'] => ({
+  ...computeDerivedStats(sheet as any),
   ...overrides,
 });
 
@@ -19,9 +16,8 @@ export const buildSessionCharacter = (
   id: string,
   overrides?: Partial<SessionCharacter>,
   customDefinitions?: CustomDefinitions,
-): SessionCharacter => ({
-  characterId: id,
-  sheet: {
+): SessionCharacter => {
+  const baseSheet: SessionCharacter['sheet'] = {
     info: {
       realName: `测试角色${id}`,
       codename: `Test-${id}`,
@@ -59,18 +55,32 @@ export const buildSessionCharacter = (
       athletics: 0,
       sleightOfHand: 0,
     },
-    powers: [],
+    powers: [
+      {
+        id: Date.now(),
+        name: '测试技能：辉光箭',
+        description: '射出一束光之箭，对目标造成轻微伤害。',
+        effectTagId: 'damage_light',
+        rank: 1,
+        modifierTagIds: [],
+      },
+    ],
     magicConstruct: { name: '测试魔装', description: '仅用于测试。' },
     wonderlandRule: { description: '测试奇境效果。' },
     blooming: { description: '测试繁开。', abilities: [] },
     gemScepter: { name: '测试权杖', ability: '无特殊效果' },
     bonds: [],
     ...overrides?.sheet,
-  },
-  runtime: buildRuntimeState(overrides?.runtime),
-  customDefinitions: customDefinitions ?? overrides?.customDefinitions,
-  ...overrides,
-});
+  };
+
+  return {
+    characterId: id,
+    sheet: baseSheet,
+    runtime: buildRuntimeState(baseSheet, overrides?.runtime),
+    customDefinitions: customDefinitions ?? overrides?.customDefinitions,
+    ...overrides,
+  };
+};
 
 export const buildManualResult = (
   partial?: Partial<ManualAdjudicationResult>,
@@ -98,3 +108,19 @@ export const buildStateDelta = (partial?: Partial<StateDeltaEntry>): StateDeltaE
   bondsChanged: partial?.bondsChanged,
   narrativeNote: partial?.narrativeNote,
 });
+
+export const buildCharacterExportJson = (
+  sessionCharacter: SessionCharacter,
+  definitions?: CustomDefinitions,
+) => {
+  const { sheet, runtime, characterId } = sessionCharacter;
+  return {
+    characterSheet: {
+      ...sheet,
+      powers: sheet.powers.map(({ id, ...rest }) => rest),
+    },
+    runtime,
+    characterId,
+    customDefinitions: definitions ?? sessionCharacter.customDefinitions,
+  };
+};

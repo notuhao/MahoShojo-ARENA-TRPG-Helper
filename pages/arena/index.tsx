@@ -11,7 +11,6 @@ import {
   type CustomDefinitions,
   type GmTurnResponse,
 } from '@/lib/schemas/gmTurnSchemas';
-import { characterSheetSchema, type CharacterSheet } from '@/lib/schemas/characterSheetSchema';
 import {
   type ConversationEntry,
   type ManualAdjudicationResult,
@@ -21,6 +20,7 @@ import {
   type StoryLogEntry,
 } from '@/lib/types/arena';
 import { applyStateUpdates } from '@/lib/trpg/stateUpdate';
+import { parseCharacterImport } from '@/lib/trpg/characterImport';
 import { generateId } from '@/lib/utils/id';
 
 const formatTimestamp = () =>
@@ -29,22 +29,6 @@ const formatTimestamp = () =>
     minute: '2-digit',
     second: '2-digit',
   }).format(new Date());
-
-const computeDerivedStats = (sheet: CharacterSheet) => {
-  const { STR, CON, MAG, WILL } = sheet.attributes;
-  const hpMax = Math.ceil((STR + CON) / 10);
-  const mpMax = Math.ceil(MAG / 5);
-  const radianceMax = Math.ceil(WILL / 5);
-  const statusNames =
-    sheet.statusEffects?.map((status) => status.name).filter(Boolean) ?? [];
-  return {
-    hp: sheet.hp ?? { current: hpMax, max: hpMax },
-    mp: sheet.mp ?? { current: mpMax, max: mpMax },
-    radiance: sheet.radiance ?? { current: radianceMax, max: radianceMax },
-    shadowPoints: sheet.shadowPoints ?? 0,
-    statuses: sheet.statusEffects ? statusNames : [],
-  };
-};
 
 const buildStateUpdateSummary = (
   previous: SessionCharacter[],
@@ -151,32 +135,7 @@ const ArenaPage: React.FC = () => {
   const handleCharacterFile = useCallback(async (file: File) => {
     const text = await file.text();
     const raw = JSON.parse(text);
-    const sheetCandidate = raw.characterSheet ?? raw.sheet ?? raw;
-    const parseResult = characterSheetSchema.safeParse(sheetCandidate);
-    if (!parseResult.success) {
-      throw new Error('角色卡结构不合法，请确认文件来源于官方工具。');
-    }
-    const sheet = parseResult.data;
-    const runtimeSource = raw.runtime ? raw.runtime : computeDerivedStats(sheet);
-    const runtime = {
-      hp: runtimeSource.hp,
-      mp: runtimeSource.mp,
-      radiance: runtimeSource.radiance,
-      shadowPoints: runtimeSource.shadowPoints ?? 0,
-      statuses: runtimeSource.statuses ?? [],
-    };
-    const characterId =
-      raw.characterId ||
-      sheet.info.codename ||
-      sheet.info.realName ||
-      `char-${Date.now().toString(36)}`;
-    const customDefinitions: CustomDefinitions | undefined =
-      raw.customDefinitions ||
-      ((raw.customSkills || raw.customPowerTags) && {
-        customSkills: raw.customSkills,
-        customPowerTags: raw.customPowerTags,
-      }) ||
-      undefined;
+    const { characterId, sheet, runtime, customDefinitions } = parseCharacterImport(raw);
 
     const sessionCharacter: SessionCharacter = {
       characterId,
