@@ -134,6 +134,7 @@ export async function streamWithAI<T, I = any>(
   }
 
   let lastError: any = new Error("所有AI提供商均生成失败。");
+  let totalAttempts = 0;
 
   for (const provider of providersToTry) {
     const retryCount = provider.retryCount ?? 1;
@@ -141,6 +142,7 @@ export async function streamWithAI<T, I = any>(
     log.info(`尝试提供商: ${provider.name}, 模型: ${selectedModel}`);
 
     for (let attempt = 1; attempt <= retryCount; attempt++) {
+      totalAttempts += 1;
       const llm = createAIClient(provider);
       try {
         const result = await streamObject({
@@ -185,8 +187,9 @@ export async function streamWithAI<T, I = any>(
     }
   }
 
-  log.error("所有AI提供商均失败", { lastError });
-  throw lastError;
+  log.error("所有AI提供商均失败", { lastError, totalAttempts });
+  const failureMessage = `AI 推演失败：共尝试 ${totalAttempts} 次仍未得到有效响应。${lastError?.message ? `最后错误：${lastError.message}` : ''}`;
+  throw new Error(failureMessage, { cause: lastError });
 }
 
 async function tryFallbackGenerate<T, I>(

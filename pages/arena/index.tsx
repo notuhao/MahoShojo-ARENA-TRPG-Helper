@@ -356,7 +356,20 @@ const ArenaPage: React.FC = () => {
       setManualResults([]);
       setCurrentInput('');
     } catch (error: any) {
-      setErrorMessage(error.message || '推演过程中发生未知错误。');
+      const failureMessage = error?.message || 'AI GM 推演失败，请稍后重试。';
+      setErrorMessage(failureMessage);
+      setStoryLog((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          role: 'gm',
+          type: 'gm-prompt',
+          content: `AI 生成失败：${failureMessage}`,
+          timestamp: formatTimestamp(),
+        },
+      ]);
+      setLastPrompt(null);
+      setLastPauseReason(undefined);
     } finally {
       setIsProcessing(false);
     }
@@ -391,6 +404,24 @@ const ArenaPage: React.FC = () => {
               采用“关键节点”循环与“混合动力判定”的高互动性长线叙事界面。
             </p>
           </header>
+
+          {errorMessage && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+              <div className="flex items-start justify-between">
+                <p>{errorMessage}</p>
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-red-500 underline"
+                  onClick={() => setErrorMessage(null)}
+                >
+                  关闭
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-red-500">
+                如果问题持续，请检查 AI 配置或稍后重试。
+              </p>
+            </div>
+          )}
 
           <div className="flex flex-1 flex-col gap-6 lg:flex-row">
             <div className="lg:w-80 lg:flex-shrink-0">
