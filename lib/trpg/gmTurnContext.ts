@@ -69,7 +69,7 @@ const formatScenarioSection = (request: GmTurnRequest) => {
   return JSON.stringify(request.scenario_data, null, 2).slice(0, 2000);
 };
 
-export const buildGmUserPrompt = (request: GmTurnRequest) => {
+export const buildGmContextEnvelope = (request: GmTurnRequest) => {
   const characterBlock = formatCharactersSection(request.full_character_sheets);
   const conversationBlock = formatConversationHistory(
     request.conversation_history,
@@ -92,12 +92,49 @@ ${manualBlock}
 ${conversationBlock}
 
 === 当前玩家输入（即刻处理，若出现 OOC 或违规请优雅重塑） ===
-${userInput}
+${userInput}`;
+};
+
+export const buildGmDraftPrompt = (request: GmTurnRequest) => {
+  const envelope = buildGmContextEnvelope(request);
+  return `${envelope}
+
+=== 输出要求（第一阶段草稿） ===
+- 先完成完整的叙事草稿，无需输出 JSON；
+- 使用以下分节标题，并保证每节独立：
+  1. 「# 叙事」：继续故事，引用规则结果与情绪描写；
+  2. 「# 状态更新」：逐条列出将要修改的角色状态，使用自然语言描述；
+  3. 「# 暂停判定」：写出 pause_at_node（true/false）与 pause_reason 的理由；
+  4. 「# 玩家提问」：写给玩家的下一步问题或指引；
+  5. 「# 成长提示」：若有成长或升级机会，描述建议；若无写“无”。
+- 在叙事中优先整合 manual_adjudication_results，如缺省则自行推断判定。
+- 草稿不需要遵守任何严格格式，但必须包含所有必要信息，便于后续结构化。`;
+};
+
+export const buildGmUserPrompt = (request: GmTurnRequest) => {
+  const envelope = buildGmContextEnvelope(request);
+  return `${envelope}
 
 请根据上述上下文继续叙事：
 - 若手动判定存在，必须引用其结果；
 - 非关键节点时连贯推动剧情；
 - 仅在关键节点触发 pause_at_node，并提供明确提问。`;
+};
+
+export const buildGmFormatterPrompt = (request: GmTurnRequest, draft: string) => {
+  const envelope = buildGmContextEnvelope(request);
+  return `${envelope}
+
+=== 第一阶段草稿（供转换参考） ===
+${draft}
+
+请将草稿完整转化为合法的 JSON：
+- narrative_chunk 字段需覆盖草稿中的「# 叙事」内容；
+- state_updates 需依据「# 状态更新」逐条生成结构化项，缺省时返回空数组；
+- pause_at_node 与 pause_reason 需对应草稿中给出的判断；
+- gm_prompt_to_user 使用「# 玩家提问」；
+- level_up_data 可依据「# 成长提示」，若无成长则返回空数组。
+`;
 };
 
 type PauseReason = GmTurnResponse['pause_reason'];
@@ -137,7 +174,9 @@ export const assertManualResultsApplied = (
   response: GmTurnResponse,
   manualResults?: ManualAdjudicationResult[],
 ) => {
-  if (!manualResults || manualResults.length === 0) return;
+  if (!manualResults || manualResults.length === 0) {
+    return response;
+  }
   const actors = manualResults.map((result) => result.actorCodename || result.actorId);
   const updates = response.state_updates ?? [];
   const narrative = response.narrative_chunk ?? '';
@@ -147,6 +186,16 @@ export const assertManualResultsApplied = (
     return inUpdates || mentioned;
   });
   if (!satisfied) {
-    throw new Error('手动判定未在AI响应中体现，已阻止返回。');
+    const appendix = manualResults
+      .map(
+        (result) =>
+          `【系统补记】${result.actorCodename || result.actorId} 的手动判定 (${result.roll}/${result.threshold}) 已被视为 ${manualSuccessLevelLabel[result.successLevel]}，请在后续叙事中继续引用。`,
+      )
+      .join('\n');
+    return {
+      ...response,
+      narrative_chunk: narrative ? `${narrative}\n\n${appendix}` : appendix,
+    };
   }
+  return response;
 };

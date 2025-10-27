@@ -19,6 +19,8 @@ export interface OfficialModelOption {
   provider?: string;
 }
 
+export type GmTwoStageMode = 'disabled' | 'same-session' | 'separate-model';
+
 // 解析 AI 提供商配置的函数
 const parseAIProviders = (): AIProvider[] => {
   // JSON 配置方式
@@ -88,6 +90,31 @@ const getLoadBalanceStrategy = (): string => {
   return process.env.AI_LOAD_BALANCE_STRATEGY || 'random';
 };
 
+const getGmTwoStageMode = (): GmTwoStageMode => {
+  const raw = (process.env.GM_TURN_TWO_STAGE_MODE || 'same-session').toLowerCase();
+  if (raw === 'disabled' || raw === 'none') return 'disabled';
+  if (raw === 'separate-model' || raw === 'separate') return 'separate-model';
+  return 'same-session';
+};
+
+const parseFormatterPriority = (): string[] => {
+  const raw = process.env.GM_TURN_FORMATTING_MODEL_PRIORITY;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map(String).filter(Boolean);
+    }
+  } catch (error) {
+    // fallthrough to CSV parsing
+  }
+  return raw
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+};
+
+
 const parseOfficialModels = (): OfficialModelOption[] => {
   const raw = process.env.AI_OFFICIAL_MODELS;
   if (!raw) return [];
@@ -107,6 +134,8 @@ export const config = {
   PROVIDERS: getAPIProviders(),
   LOAD_BALANCE_STRATEGY: getLoadBalanceStrategy(),
   OFFICIAL_MODELS: parseOfficialModels(),
+  GM_TURN_TWO_STAGE_MODE: getGmTwoStageMode(),
+  GM_TURN_FORMATTING_MODEL_PRIORITY: parseFormatterPriority(),
 
   // 数据卡管理配置
   DEFAULT_DATA_CARD_CAPACITY: 20,

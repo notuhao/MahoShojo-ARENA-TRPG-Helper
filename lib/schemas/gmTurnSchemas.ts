@@ -107,7 +107,8 @@ export const gmTurnResponseSchema = z.object({
     .describe('AI 生成的故事段落，需遵守关键节点模型'),
   state_updates: z
     .array(stateDeltaEntrySchema)
-    .describe('角色状态的增量更新'),
+    .describe('角色状态的增量更新')
+    .default([]),
   pause_at_node: z
     .boolean()
     .describe('是否暂停等待玩家输入（关键节点模型核心）'),
@@ -127,8 +128,8 @@ export const gmTurnResponseSchema = z.object({
     .describe('AI 面向玩家的提问或指引'),
   level_up_data: z
     .array(levelUpRecommendationSchema)
-    .optional()
-    .describe('成长数据（第7章），可能为空'),
+    .describe('成长数据（第7章），可能为空')
+    .default([]),
 });
 
 export type GmTurnResponse = z.infer<typeof gmTurnResponseSchema>;

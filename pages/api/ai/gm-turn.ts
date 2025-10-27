@@ -1,21 +1,14 @@
 // pages/api/ai/gm-turn.ts
 
-import { streamWithAI, type GenerationConfig } from '@/lib/ai';
 import { getLogger } from '@/lib/logger';
 import { config as serviceConfig } from '@/lib/config';
+import { gmTurnRequestSchema } from '@/lib/schemas/gmTurnSchemas';
 import {
-  gmTurnRequestSchema,
-  gmTurnResponseSchema,
-  type GmTurnRequest,
-  type GmTurnResponse,
-} from '@/lib/schemas/gmTurnSchemas';
-import { buildGmSystemPrompt } from '@/lib/trpg/gmSystemPrompt';
-import {
-  buildGmUserPrompt,
   enforcePauseContract,
   hasManualResults,
   assertManualResultsApplied,
 } from '@/lib/trpg/gmTurnContext';
+import { generateGmResponse } from '@/lib/trpg/gmTwoStagePipeline';
 import type { NextRequest } from 'next/server';
 
 export const config = {
@@ -67,28 +60,19 @@ export default async function handler(req: NextRequest) {
       );
     }
 
-    const systemPrompt = buildGmSystemPrompt();
-    const userPrompt = buildGmUserPrompt(parsedRequest);
-
-    const generationConfig: GenerationConfig<GmTurnResponse, { prompt: string }> = {
-      systemPrompt,
-      promptBuilder: (input) => input.prompt,
-      schema: gmTurnResponseSchema,
-      temperature: 0.7,
-      maxTokens: 2048,
-      taskName: 'GM关键节点推演',
-      modelOverride: parsedRequest.model_preference,
-    };
-
-    const result = await streamWithAI({ prompt: userPrompt }, generationConfig);
-    const payload = await result.object;
-    const manualProvided = hasManualResults(parsedRequest);
-    const sanitizedResponse = enforcePauseContract(payload, manualProvided);
-    if (manualProvided) {
-      assertManualResultsApplied(sanitizedResponse, parsedRequest.manual_adjudication_results);
+    const { response: payload, draft } = await generateGmResponse(parsedRequest);
+    if (draft) {
+      log.debug('GM第一阶段草稿已生成', { excerpt: draft.slice(0, 200) });
     }
-
-    return new Response(JSON.stringify(sanitizedResponse), {
+    const manualProvided = hasManualResults(parsedRequest);
+    let normalizedResponse = enforcePauseContract(payload, manualProvided);
+    if (manualProvided) {
+      normalizedResponse = assertManualResultsApplied(
+        normalizedResponse,
+        parsedRequest.manual_adjudication_results,
+      );
+    }
+    return new Response(JSON.stringify(normalizedResponse), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
