@@ -77,6 +77,8 @@ async function runSecondStage(prompt: string, preferredModel?: string): Promise<
           log.warn(`格式化模型 ${model} 失败，尝试下一个`, { error });
         }
       }
+    } else {
+      log.debug('未找到匹配配置的格式化模型，使用默认策略');
     }
   } else if (preferredModel) {
     try {

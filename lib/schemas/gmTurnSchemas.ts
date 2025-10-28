@@ -89,11 +89,21 @@ export const stateDeltaEntrySchema = z
 export const levelUpRecommendationSchema = z.object({
   characterId: z.string().describe('触发成长的角色ID'),
   suggestedAttributeSpends: z
-    .record(z.string(), z.number())
+    .array(
+      z.object({
+        attributeId: z.string().describe('属性标识'),
+        spend: z.number().describe('建议投入的点数'),
+      }),
+    )
     .optional()
     .describe('建议的属性加点'),
   suggestedSkillSpends: z
-    .record(z.string(), z.number())
+    .array(
+      z.object({
+        skillId: z.string().describe('技能标识'),
+        spend: z.number().describe('建议投入的点数'),
+      }),
+    )
     .optional()
     .describe('建议的技能加点'),
   suggestedPowers: z
