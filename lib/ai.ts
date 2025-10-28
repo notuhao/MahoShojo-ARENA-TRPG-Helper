@@ -26,6 +26,7 @@ export interface GenerationConfig<T, I = any> {
   taskName: string;
   maxTokens: number;
   modelOverride?: string; // 允许API层根据需求（如“轻量模型”）覆盖默认模型
+  preferStreaming?: boolean; // 为 true 或未设置时使用流式解析，为 false 时直接同步生成
 }
 
 // 根据提供商配置创建对应的AI客户端实例
@@ -145,7 +146,23 @@ export async function streamWithAI<T, I = any>(
       totalAttempts += 1;
       const llm = createAIClient(provider);
       try {
-        const result = await streamObject({
+        if (generationConfig.preferStreaming === false) {
+          const { object } = await generateObject({
+            model: llm(selectedModel),
+            schema: generationConfig.schema as z.ZodSchema<T>,
+            system: generationConfig.systemPrompt,
+            prompt: generationConfig.promptBuilder(input),
+            temperature: generationConfig.temperature,
+            maxTokens: generationConfig.maxTokens,
+            mode: provider.mode || 'json',
+            experimental_repairText: async ({ text }: { text: string }) =>
+              stripJsonFences(text),
+          });
+          log.debug(`提供商 ${provider.name} 成功生成对象 (非流式)`);
+          return wrapAsStreamResult(object as T);
+        }
+
+        const rawResult = await streamObject({
           model: llm(selectedModel),
           schema: generationConfig.schema as z.ZodSchema<T>,
           system: generationConfig.systemPrompt,
@@ -156,7 +173,18 @@ export async function streamWithAI<T, I = any>(
           experimental_repairText: async ({ text }: { text: string }) =>
             stripJsonFences(text),
         });
-        log.info(`提供商 ${provider.name} 成功响应 (尝试 ${attempt}/${retryCount})`);
+        const objectPromise = rawResult.object.then((value) => {
+          log.debug(`提供商 ${provider.name} 返回对象已完成`, {
+            task: generationConfig.taskName,
+            model: selectedModel,
+          });
+          return value;
+        });
+        const result = {
+          ...rawResult,
+          object: objectPromise,
+        } as typeof rawResult;
+        log.debug(`提供商 ${provider.name} 成功响应 (尝试 ${attempt}/${retryCount})`);
 
         return result;
 

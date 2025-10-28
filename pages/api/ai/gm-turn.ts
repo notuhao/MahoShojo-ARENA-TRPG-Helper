@@ -18,6 +18,8 @@ export const config = {
 const log = getLogger('api/ai/gm-turn');
 
 export default async function handler(req: NextRequest) {
+  const requestStartedAt = Date.now();
+  log.info('收到 GM 轮次请求');
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
       status: 405,
@@ -44,6 +46,11 @@ export default async function handler(req: NextRequest) {
     }
 
     const parsedRequest = parsed.data;
+    log.debug('GM轮次请求解析成功', {
+      characters: parsedRequest.full_character_sheets.length,
+      historyCount: parsedRequest.conversation_history.length,
+      hasManual: !!parsedRequest.manual_adjudication_results?.length,
+    });
     if (
       parsedRequest.model_preference &&
       serviceConfig.OFFICIAL_MODELS.length > 0 &&
@@ -72,6 +79,13 @@ export default async function handler(req: NextRequest) {
         parsedRequest.manual_adjudication_results,
       );
     }
+    log.info('GM轮次响应已生成', {
+      narrativeLength: normalizedResponse.narrative_chunk.length,
+      stateUpdates: normalizedResponse.state_updates.length,
+      pause: normalizedResponse.pause_at_node,
+      pauseReason: normalizedResponse.pause_reason,
+      durationMs: Date.now() - requestStartedAt,
+    });
     return new Response(JSON.stringify(normalizedResponse), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -81,6 +95,10 @@ export default async function handler(req: NextRequest) {
     const isConfigError =
       typeof error?.message === 'string' &&
       (error.message.includes('未找到支持模型') || error.message.includes('未被列入允许名单'));
+    log.error('GM轮次生成失败', {
+      durationMs: Date.now() - requestStartedAt,
+      details: error?.message,
+    });
     return new Response(
       JSON.stringify({
         error: isConfigError ? '请求的模型未在服务器配置中启用。' : 'GM轮次生成失败，请稍后重试。',

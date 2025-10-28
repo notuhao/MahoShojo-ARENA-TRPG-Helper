@@ -19,6 +19,12 @@ import {
 
 const log = getLogger('ai/two-stage');
 
+const hasProviderForModel = (modelId: string) =>
+  config.PROVIDERS.some((provider) => {
+    const models = Array.isArray(provider.model) ? provider.model : [provider.model];
+    return models.includes(modelId);
+  });
+
 const gmDraftSchema = z.object({
   draft: z.string().min(10, '草稿内容过短，请补充完整叙事'),
 });
@@ -32,6 +38,7 @@ const draftGenerationConfig: GenerationConfig<DraftPayload, { prompt: string }> 
   taskName: 'GM草稿推演',
   temperature: 0.7,
   maxTokens: 2048,
+  preferStreaming: false,
 };
 
 const formatterBaseConfig: GenerationConfig<GmTurnResponse, { prompt: string }> = {
@@ -41,6 +48,7 @@ const formatterBaseConfig: GenerationConfig<GmTurnResponse, { prompt: string }> 
   taskName: 'GM结果格式化',
   temperature: 0.4,
   maxTokens: 2048,
+  preferStreaming: false,
 };
 
 async function runFormatterWithModel(prompt: string, modelOverride?: string): Promise<GmTurnResponse> {
@@ -55,15 +63,15 @@ async function runSecondStage(prompt: string, preferredModel?: string): Promise<
   const mode = config.GM_TURN_TWO_STAGE_MODE;
   if (mode === 'separate-model') {
     const priority = config.GM_TURN_FORMATTING_MODEL_PRIORITY;
-    const candidates = [...priority];
-    if (preferredModel) {
-      candidates.push(preferredModel);
-    }
-    const uniqueCandidates = candidates.filter((model, index, arr) => arr.indexOf(model) === index);
+    const candidates = [...priority, preferredModel].filter(Boolean) as string[];
+    const uniqueCandidates = candidates.filter((model, index, arr) => {
+      const firstIndex = arr.indexOf(model);
+      return firstIndex === index && hasProviderForModel(model);
+    });
     if (uniqueCandidates.length > 0) {
       for (const model of uniqueCandidates) {
         try {
-          log.info(`尝试使用格式化模型 ${model}`);
+          log.debug(`尝试使用格式化模型 ${model}`);
           return await runFormatterWithModel(prompt, model);
         } catch (error) {
           log.warn(`格式化模型 ${model} 失败，尝试下一个`, { error });
@@ -85,7 +93,10 @@ async function runStageOne(request: GmTurnRequest, prompt: string): Promise<Draf
     ...draftGenerationConfig,
     modelOverride: request.model_preference,
   });
-  return await result.object;
+  log.debug('GM两段式：等待第一阶段对象解析');
+  const draft = await result.object;
+  log.debug('GM两段式：第一阶段对象已解析');
+  return draft;
 }
 
 async function runSingleStage(request: GmTurnRequest, prompt: string): Promise<GmTurnResponse> {
@@ -93,7 +104,10 @@ async function runSingleStage(request: GmTurnRequest, prompt: string): Promise<G
     ...formatterBaseConfig,
     modelOverride: request.model_preference,
   });
-  return await result.object;
+  log.debug('GM单阶段：等待对象解析');
+  const response = await result.object;
+  log.debug('GM单阶段：对象已解析');
+  return response;
 }
 
 export const generateGmResponse = async (
@@ -101,6 +115,7 @@ export const generateGmResponse = async (
 ): Promise<{ response: GmTurnResponse; draft?: string }> => {
   if (config.GM_TURN_TWO_STAGE_MODE === 'disabled') {
     const prompt = buildGmUserPrompt(request);
+    log.debug('GM两段式：单阶段模式，直接生成');
     return { response: await runSingleStage(request, prompt) };
   }
 
@@ -108,7 +123,9 @@ export const generateGmResponse = async (
   let draftPayload: DraftPayload;
 
   try {
+    log.debug('GM两段式：开始第一阶段草稿生成');
     draftPayload = await runStageOne(request, draftPrompt);
+    log.debug('GM两段式：第一阶段完成', { draftLength: draftPayload.draft.length });
   } catch (draftError) {
     log.error('GM 第一阶段草稿生成失败，回退至单阶段模式', { error: draftError });
     const fallbackPrompt = buildGmUserPrompt(request);
@@ -118,7 +135,12 @@ export const generateGmResponse = async (
   const formatterPrompt = buildGmFormatterPrompt(request, draftPayload.draft);
 
   try {
+    log.debug('GM两段式：开始第二阶段结构化');
     const formatterResponse = await runSecondStage(formatterPrompt, request.model_preference);
+    log.debug('GM两段式：第二阶段完成', {
+      narrativeLength: formatterResponse.narrative_chunk.length,
+      stateUpdates: formatterResponse.state_updates.length,
+    });
     return { response: formatterResponse, draft: draftPayload.draft };
   } catch (formatError) {
     log.error('GM 第二阶段格式化失败，回退至单阶段模式', { error: formatError });
