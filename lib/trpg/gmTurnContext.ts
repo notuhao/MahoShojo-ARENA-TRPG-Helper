@@ -130,7 +130,7 @@ ${draft}
 
 请将草稿完整转化为合法的 JSON：
 - narrative_chunk 字段需覆盖草稿中的「# 叙事」内容；
-- state_updates 需依据「# 状态更新」逐条生成结构化项，缺省时返回空数组；
+- state_updates 需依据「# 状态更新」逐条生成结构化项，优先填写 hpDelta / mpDelta / radianceDelta / shadowPointsDelta 等增量字段；如需直接设定新上限或当前值，可使用 hpOverride/mpOverride/radianceOverride/ shadowPointsOverride；缺省时返回空数组；
 - pause_at_node 与 pause_reason 需对应草稿中给出的判断；
 - gm_prompt_to_user 使用「# 玩家提问」；
 - level_up_data 可依据「# 成长提示」，若无成长则返回空数组。

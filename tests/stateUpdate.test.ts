@@ -64,7 +64,7 @@ describe('applyStateUpdates', () => {
     const updates: StateDeltaEntry[] = [
       {
         characterId: 'pc-1',
-        hp: { current: 6, max: 9 },
+        hpDelta: -3,
         statusesGained: ['燃烧'],
       },
     ];
@@ -81,7 +81,7 @@ describe('applyStateUpdates', () => {
     const updates: StateDeltaEntry[] = [
       {
         characterId: 'pc-1',
-        shadowPoints: 3,
+        shadowPointsOverride: 3,
         statusesRemoved: ['燃烧'],
       },
     ];
@@ -96,7 +96,7 @@ describe('applyStateUpdates', () => {
     const updates: StateDeltaEntry[] = [
       {
         characterId: 'pc-1',
-        hp: { current: 8 },
+        hpOverride: { current: 8 },
       },
       {
         characterId: 'pc-1',

@@ -99,10 +99,14 @@ export const buildManualResult = (
 
 export const buildStateDelta = (partial?: Partial<StateDeltaEntry>): StateDeltaEntry => ({
   characterId: partial?.characterId ?? 'pc-1',
-  hp: partial?.hp,
-  mp: partial?.mp,
-  radiance: partial?.radiance,
-  shadowPoints: partial?.shadowPoints,
+  hpDelta: partial?.hpDelta,
+  hpOverride: partial?.hpOverride,
+  mpDelta: partial?.mpDelta,
+  mpOverride: partial?.mpOverride,
+  radianceDelta: partial?.radianceDelta,
+  radianceOverride: partial?.radianceOverride,
+  shadowPointsDelta: partial?.shadowPointsDelta,
+  shadowPointsOverride: partial?.shadowPointsOverride,
   statusesGained: partial?.statusesGained,
   statusesRemoved: partial?.statusesRemoved,
   bondsChanged: partial?.bondsChanged,

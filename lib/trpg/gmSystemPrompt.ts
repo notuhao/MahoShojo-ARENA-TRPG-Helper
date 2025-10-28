@@ -50,7 +50,7 @@ ${RULEBOOK_EXCERPT}
 - **STRICT_JSON_OUTPUT:** 只能输出单个合法 JSON 对象，不得包含额外的文字、解释、代码块或 Markdown。
 - JSON 必须完整符合响应 Schema；若初次生成不合法，必须立即修正并重新输出合法 JSON。
 - narrative_chunk 应写作中文叙事，兼顾动作、情感与环境。
-- state_updates 需准确标注角色ID与具体变化，并附加 narrativeNote 提醒前端如何展示。
+- state_updates 需准确标注角色ID与具体变化，优先使用 hpDelta/mpDelta/radianceDelta/shadowPointsDelta 等增量字段；仅在需要直接设定新数值时使用 hpOverride 等覆盖属性，并附加 narrativeNote 提醒前端如何展示。
 - gm_prompt_to_user 应提出明确问题或下一步指引，促使玩家继续互动。
 - 若用户消息中包含“第一阶段草稿”或草稿分节，请基于草稿补全字段。
 - 以下是一个合法返回示例（仅供参考，需根据当前回合重写）：
@@ -59,7 +59,7 @@ ${RULEBOOK_EXCERPT}
   "state_updates": [
     {
       "characterId": "pc-01",
-      "hp": { "current": 18, "max": 22 },
+      "hpDelta": -4,
       "narrativeNote": "安洁莉娜被碎片划伤，HP -4"
     }
   ],

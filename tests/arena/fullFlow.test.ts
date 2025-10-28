@@ -51,12 +51,16 @@ describe('端到端：角色导入 → 用户输入 → AI 输出', () => {
       model_preference: 'gemini-2.0-flash',
     };
 
+    const mockDraft = {
+      draft: `# 叙事\n${sheet.info.codename}稳住阵型。\n\n# 状态更新\n- ${sheet.info.codename} HP -1\n\n# 暂停判定\ntrue / PLAYER_CHOICE\n\n# 玩家提问\n你要发起反攻吗？\n\n# 成长提示\n无`,
+    };
+
     const mockResponse = {
       narrative_chunk: `${sheet.info.codename} 顺势展开屏障，为队友争取到重新调整阵型的时间。`,
       state_updates: [
         {
           characterId,
-          hp: { current: runtime.hp.current - 1, max: runtime.hp.max },
+          hpDelta: -1,
           narrativeNote: '承受反冲导致轻微擦伤。',
         },
       ],
@@ -67,7 +71,9 @@ describe('端到端：角色导入 → 用户输入 → AI 输出', () => {
     };
 
     const aiModule = await import('@/lib/ai');
-    vi.spyOn(aiModule, 'streamWithAI').mockResolvedValueOnce({ object: Promise.resolve(mockResponse) } as any);
+    vi.spyOn(aiModule, 'streamWithAI')
+      .mockResolvedValueOnce({ object: Promise.resolve(mockDraft) } as any)
+      .mockResolvedValueOnce({ object: Promise.resolve(mockResponse) } as any);
 
     const request = new Request('http://localhost/api/ai/gm-turn', {
       method: 'POST',

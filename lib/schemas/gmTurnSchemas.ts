@@ -50,13 +50,23 @@ export const conversationEntrySchema = z.object({
   content: z.string().describe('具体的对话内容'),
 });
 
+const partialDynamicStatSchema = dynamicStatSchema
+  .partial()
+  .refine((value) => value.current !== undefined || value.max !== undefined, {
+    message: '需至少提供 current 或 max 字段',
+  });
+
 export const stateDeltaEntrySchema = z
   .object({
     characterId: z.string().describe('需要更新的角色ID'),
-    hp: dynamicStatSchema.optional(),
-    mp: dynamicStatSchema.optional(),
-    radiance: dynamicStatSchema.optional(),
-    shadowPoints: z.number().optional(),
+    hpDelta: z.number().optional().describe('HP 的增量（负值代表损失）'),
+    hpOverride: partialDynamicStatSchema.optional().describe('若需直接覆盖 HP current/max，可在此指定'),
+    mpDelta: z.number().optional().describe('MP 的增量'),
+    mpOverride: partialDynamicStatSchema.optional().describe('若需直接覆盖 MP current/max，可在此指定'),
+    radianceDelta: z.number().optional().describe('光辉的增量'),
+    radianceOverride: partialDynamicStatSchema.optional().describe('若需直接覆盖光辉 current/max，可在此指定'),
+    shadowPointsDelta: z.number().optional().describe('阴影值的增量'),
+    shadowPointsOverride: z.number().optional().describe('若需直接覆盖阴影值，可在此指定'),
     statusesGained: z.array(z.string()).optional(),
     statusesRemoved: z.array(z.string()).optional(),
     bondsChanged: z
@@ -111,7 +121,8 @@ export const gmTurnResponseSchema = z.object({
     .default([]),
   pause_at_node: z
     .boolean()
-    .describe('是否暂停等待玩家输入（关键节点模型核心）'),
+    .describe('是否暂停等待玩家输入（关键节点模型核心）')
+    .default(false),
   pause_reason: z
     .enum([
       'KEY_NODE',
@@ -122,10 +133,12 @@ export const gmTurnResponseSchema = z.object({
       'PLAYER_CHOICE',
       'PLAYER_INPUT',
     ])
-    .describe('暂停原因，用于前端决定UI响应'),
+    .describe('暂停原因，用于前端决定UI响应')
+    .default('SCENARIO_DIRECTIVE'),
   gm_prompt_to_user: z
     .string()
-    .describe('AI 面向玩家的提问或指引'),
+    .describe('AI 面向玩家的提问或指引')
+    .default(''),
   level_up_data: z
     .array(levelUpRecommendationSchema)
     .describe('成长数据（第7章），可能为空')

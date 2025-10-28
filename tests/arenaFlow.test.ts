@@ -45,7 +45,7 @@ describe('高互动叙事流程工具链', () => {
       state_updates: [
         buildStateDelta({
           characterId,
-          hp: { current: restoredCharacter.runtime.hp.current - 2, max: restoredCharacter.runtime.hp.max },
+          hpDelta: -2,
           statusesGained: ['燃烧'],
         }),
       ],

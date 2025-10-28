@@ -13,13 +13,34 @@ import type {
  * - 所有更新均返回新的对象，便于在 React 状态中使用。
  */
 
-const clampStat = (stat: Partial<DynamicStat>, fallback: DynamicStat): DynamicStat => {
-  const max = stat.max ?? fallback.max;
-  const current = stat.current ?? fallback.current;
+const clampStat = (max: number, current: number): DynamicStat => {
+  const safeMax = Math.max(0, max);
+  const safeCurrent = Math.max(0, Math.min(safeMax, current));
   return {
-    max,
-    current: Math.max(0, Math.min(max, current)),
+    max: safeMax,
+    current: safeCurrent,
   };
+};
+
+const applyDynamicStatDelta = (
+  base: DynamicStat,
+  delta?: number,
+  override?: Partial<DynamicStat>,
+): DynamicStat => {
+  const nextMax = override?.max ?? base.max;
+  const baseCurrent = override?.current ?? base.current;
+  const nextCurrent = typeof delta === 'number' ? baseCurrent + delta : baseCurrent;
+  return clampStat(nextMax, nextCurrent);
+};
+
+const applyShadowPointsDelta = (
+  base: number,
+  delta?: number,
+  override?: number,
+) => {
+  const nextBase = typeof override === 'number' ? override : base;
+  const next = typeof delta === 'number' ? nextBase + delta : nextBase;
+  return Math.max(0, next);
 };
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -73,17 +94,33 @@ export const applyStateUpdates = (
 
     return relevant.reduce<SessionCharacter>((acc, update) => {
       const nextRuntime = { ...acc.runtime };
-      if (update.hp) {
-        nextRuntime.hp = clampStat(update.hp, acc.runtime.hp);
+      if (update.hpDelta !== undefined || update.hpOverride) {
+        nextRuntime.hp = applyDynamicStatDelta(
+          acc.runtime.hp,
+          update.hpDelta,
+          update.hpOverride,
+        );
       }
-      if (update.mp) {
-        nextRuntime.mp = clampStat(update.mp, acc.runtime.mp);
+      if (update.mpDelta !== undefined || update.mpOverride) {
+        nextRuntime.mp = applyDynamicStatDelta(
+          acc.runtime.mp,
+          update.mpDelta,
+          update.mpOverride,
+        );
       }
-      if (update.radiance) {
-        nextRuntime.radiance = clampStat(update.radiance, acc.runtime.radiance);
+      if (update.radianceDelta !== undefined || update.radianceOverride) {
+        nextRuntime.radiance = applyDynamicStatDelta(
+          acc.runtime.radiance,
+          update.radianceDelta,
+          update.radianceOverride,
+        );
       }
-      if (typeof update.shadowPoints === 'number') {
-        nextRuntime.shadowPoints = Math.max(0, update.shadowPoints);
+      if (update.shadowPointsDelta !== undefined || update.shadowPointsOverride !== undefined) {
+        nextRuntime.shadowPoints = applyShadowPointsDelta(
+          acc.runtime.shadowPoints,
+          update.shadowPointsDelta,
+          update.shadowPointsOverride,
+        );
       }
       nextRuntime.statuses = applyStatusChanges(nextRuntime.statuses, update);
 

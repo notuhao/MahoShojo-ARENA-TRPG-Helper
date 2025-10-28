@@ -91,7 +91,7 @@ const getLoadBalanceStrategy = (): string => {
 };
 
 const getGmTwoStageMode = (): GmTwoStageMode => {
-  const raw = (process.env.GM_TURN_TWO_STAGE_MODE || 'same-session').toLowerCase();
+  const raw = (process.env.GM_TURN_TWO_STAGE_MODE || 'separate-model').toLowerCase();
   if (raw === 'disabled' || raw === 'none') return 'disabled';
   if (raw === 'separate-model' || raw === 'separate') return 'separate-model';
   return 'same-session';

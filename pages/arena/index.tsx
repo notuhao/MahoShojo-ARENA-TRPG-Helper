@@ -45,16 +45,37 @@ const buildStateUpdateSummary = (
     const codename = after.sheet.info.codename || after.sheet.info.realName || after.characterId;
     const deltas: string[] = [];
 
-    if (update.hp) {
-      deltas.push(`HP ${before.runtime.hp.current} → ${after.runtime.hp.current}`);
+    if (
+      before.runtime.hp.current !== after.runtime.hp.current ||
+      before.runtime.hp.max !== after.runtime.hp.max
+    ) {
+      const maxNote =
+        before.runtime.hp.max !== after.runtime.hp.max
+          ? `（上限 ${before.runtime.hp.max} → ${after.runtime.hp.max}）`
+          : '';
+      deltas.push(`HP ${before.runtime.hp.current} → ${after.runtime.hp.current}${maxNote}`);
     }
-    if (update.mp) {
-      deltas.push(`MP ${before.runtime.mp.current} → ${after.runtime.mp.current}`);
+    if (
+      before.runtime.mp.current !== after.runtime.mp.current ||
+      before.runtime.mp.max !== after.runtime.mp.max
+    ) {
+      const maxNote =
+        before.runtime.mp.max !== after.runtime.mp.max
+          ? `（上限 ${before.runtime.mp.max} → ${after.runtime.mp.max}）`
+          : '';
+      deltas.push(`MP ${before.runtime.mp.current} → ${after.runtime.mp.current}${maxNote}`);
     }
-    if (update.radiance) {
-      deltas.push(`光辉 ${before.runtime.radiance.current} → ${after.runtime.radiance.current}`);
+    if (
+      before.runtime.radiance.current !== after.runtime.radiance.current ||
+      before.runtime.radiance.max !== after.runtime.radiance.max
+    ) {
+      const maxNote =
+        before.runtime.radiance.max !== after.runtime.radiance.max
+          ? `（上限 ${before.runtime.radiance.max} → ${after.runtime.radiance.max}）`
+          : '';
+      deltas.push(`光辉 ${before.runtime.radiance.current} → ${after.runtime.radiance.current}${maxNote}`);
     }
-    if (typeof update.shadowPoints === 'number') {
+    if (before.runtime.shadowPoints !== after.runtime.shadowPoints) {
       deltas.push(`阴影值 ${before.runtime.shadowPoints} → ${after.runtime.shadowPoints}`);
     }
     if ((update.statusesGained && update.statusesGained.length > 0) || (update.statusesRemoved && update.statusesRemoved.length > 0)) {

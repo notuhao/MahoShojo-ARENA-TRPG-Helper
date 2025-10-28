@@ -55,9 +55,13 @@ async function runSecondStage(prompt: string, preferredModel?: string): Promise<
   const mode = config.GM_TURN_TWO_STAGE_MODE;
   if (mode === 'separate-model') {
     const priority = config.GM_TURN_FORMATTING_MODEL_PRIORITY;
-    const candidates = [preferredModel, ...priority].filter(Boolean) as string[];
-    if (candidates.length > 0) {
-      for (const model of candidates) {
+    const candidates = [...priority];
+    if (preferredModel) {
+      candidates.push(preferredModel);
+    }
+    const uniqueCandidates = candidates.filter((model, index, arr) => arr.indexOf(model) === index);
+    if (uniqueCandidates.length > 0) {
+      for (const model of uniqueCandidates) {
         try {
           log.info(`尝试使用格式化模型 ${model}`);
           return await runFormatterWithModel(prompt, model);
@@ -101,11 +105,25 @@ export const generateGmResponse = async (
   }
 
   const draftPrompt = buildGmDraftPrompt(request);
-  const draftPayload = await runStageOne(request, draftPrompt);
+  let draftPayload: DraftPayload;
+
+  try {
+    draftPayload = await runStageOne(request, draftPrompt);
+  } catch (draftError) {
+    log.error('GM 第一阶段草稿生成失败，回退至单阶段模式', { error: draftError });
+    const fallbackPrompt = buildGmUserPrompt(request);
+    return { response: await runSingleStage(request, fallbackPrompt) };
+  }
 
   const formatterPrompt = buildGmFormatterPrompt(request, draftPayload.draft);
 
-  const formatterResponse = await runSecondStage(formatterPrompt, request.model_preference);
-
-  return { response: formatterResponse, draft: draftPayload.draft };
+  try {
+    const formatterResponse = await runSecondStage(formatterPrompt, request.model_preference);
+    return { response: formatterResponse, draft: draftPayload.draft };
+  } catch (formatError) {
+    log.error('GM 第二阶段格式化失败，回退至单阶段模式', { error: formatError });
+    const fallbackPrompt = buildGmUserPrompt(request);
+    const fallbackResponse = await runSingleStage(request, fallbackPrompt);
+    return { response: fallbackResponse, draft: draftPayload.draft };
+  }
 };

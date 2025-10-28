@@ -65,12 +65,16 @@ describe('api/ai/gm-turn', () => {
     const handlerModule = await import('@/pages/api/ai/gm-turn');
     const handler = handlerModule.default;
 
+    const mockDraft = {
+      draft: `# 叙事\n队伍稳住阵型。\n\n# 状态更新\n- PC 承受反震 HP -2\n\n# 暂停判定\ntrue / MANUAL_ADJUDICATION\n\n# 玩家提问\n如何巩固防线？\n\n# 成长提示\n无`,
+    };
+
     const mockResponse = {
       narrative_chunk: '辉光箭化作防护墙。',
       state_updates: [
         {
           characterId: 'pc-api',
-          hp: { current: 7, max: 9 },
+          hpDelta: -2,
           narrativeNote: '因承受冲击而掉血。',
         },
       ],
@@ -81,7 +85,9 @@ describe('api/ai/gm-turn', () => {
     };
 
     const streamWithAIModule = await import('@/lib/ai');
-    vi.spyOn(streamWithAIModule, 'streamWithAI').mockResolvedValueOnce(buildMockStreamResult(mockResponse));
+    vi.spyOn(streamWithAIModule, 'streamWithAI')
+      .mockResolvedValueOnce(buildMockStreamResult(mockDraft))
+      .mockResolvedValueOnce(buildMockStreamResult(mockResponse));
 
     const request = new Request('http://localhost/api/ai/gm-turn', {
       method: 'POST',
