@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import PartyHud from '@/components/arena/PartyHud';
 import StoryLog from '@/components/arena/StoryLog';
 import PlayerInputPanel from '@/components/arena/PlayerInputPanel';
+import AiProviderSelector, { UserAIProviderConfig } from '@/components/AiProviderSelector';
 import {
   gmTurnResponseSchema,
   type CustomDefinitions,
@@ -159,6 +160,7 @@ const ArenaPage: React.FC = () => {
   const [lastPauseReason, setLastPauseReason] = useState<GmTurnResponse['pause_reason']>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [modelPreference, setModelPreference] = useState<string | undefined>(() => undefined);
+  const [userProviderConfig, setUserProviderConfig] = useState<UserAIProviderConfig | undefined>();
 
   const characterInputRef = useRef<HTMLInputElement | null>(null);
   const scenarioInputRef = useRef<HTMLInputElement | null>(null);
@@ -300,6 +302,11 @@ const ArenaPage: React.FC = () => {
       scenario_data: scenario ?? undefined,
       custom_definitions: aggregatedCustomDefinitions,
       model_preference: modelPreference || undefined,
+      provider_config: userProviderConfig?.providerId !== 'system' ? {
+        providerId: userProviderConfig?.providerId || '',
+        modelId: userProviderConfig?.modelId || '',
+        apiKey: userProviderConfig?.apiKey,
+      } : undefined,
     };
 
     try {
@@ -451,39 +458,16 @@ const ArenaPage: React.FC = () => {
               <div className="mt-4 rounded-2xl border border-purple-200 bg-white/80 p-4 shadow-sm backdrop-blur">
                 <h3 className="text-sm font-semibold text-slate-700">会话资源</h3>
                 <div className="mt-3 flex flex-col gap-2 text-sm">
-                  {MODEL_OPTIONS.length > 0 && (
-                    <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
-                      AI 模型
-                      <select
-                        className="rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                        value={modelPreference ?? ''}
-                        onChange={(event) => {
-                          const nextValue = event.target.value || undefined;
-                          setModelPreference(nextValue);
-                          if (nextValue) {
-                            const selected = MODEL_OPTIONS.find((item) => item.id === nextValue);
-                            setStoryLog((prev) => [
-                              ...prev,
-                              {
-                                id: generateId(),
-                                role: 'gm',
-                                type: 'gm-prompt',
-                                content: `已切换至模型 ${selected?.label ?? nextValue}。`,
-                                timestamp: formatTimestamp(),
-                              },
-                            ]);
-                          }
-                        }}
-                        data-testid="model-select"
-                      >
-                        {MODEL_OPTIONS.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
+                  <AiProviderSelector
+                    onConfigChange={(config) => {
+                      setUserProviderConfig(config);
+                      if (config.providerId === 'system') {
+                        setModelPreference(config.modelId);
+                      } else {
+                        setModelPreference(undefined);
+                      }
+                    }}
+                  />
                   <button
                     type="button"
                     onClick={() => characterInputRef.current?.click()}
@@ -539,19 +523,19 @@ const ArenaPage: React.FC = () => {
                   {errorMessage}
                 </div>
               )}
-      <PlayerInputPanel
-        characters={party}
-        manualResults={manualResults}
-        currentInput={currentInput}
-        onInputChange={setCurrentInput}
-        onAddManualResult={handleAddManualResult}
-        onRemoveManualResult={handleRemoveManualResult}
-        onSubmit={handleSubmit}
-        disabled={party.length === 0}
-        isProcessing={isProcessing}
-        lastPrompt={lastPrompt}
-        pauseReason={lastPauseReason}
-      />
+              <PlayerInputPanel
+                characters={party}
+                manualResults={manualResults}
+                currentInput={currentInput}
+                onInputChange={setCurrentInput}
+                onAddManualResult={handleAddManualResult}
+                onRemoveManualResult={handleRemoveManualResult}
+                onSubmit={handleSubmit}
+                disabled={party.length === 0}
+                isProcessing={isProcessing}
+                lastPrompt={lastPrompt}
+                pauseReason={lastPauseReason}
+              />
             </div>
           </div>
 

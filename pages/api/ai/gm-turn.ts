@@ -52,6 +52,7 @@ export default async function handler(req: NextRequest) {
       hasManual: !!parsedRequest.manual_adjudication_results?.length,
     });
     if (
+      !parsedRequest.provider_config && // 仅当未使用自定义提供商时才校验官方模型白名单
       parsedRequest.model_preference &&
       serviceConfig.OFFICIAL_MODELS.length > 0 &&
       !serviceConfig.OFFICIAL_MODELS.some((option) => option.id === parsedRequest.model_preference)
