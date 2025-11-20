@@ -60,7 +60,6 @@ const createAIClient = (provider: AIProvider) => {
     return createOpenAI({
       apiKey: provider.apiKey,
       baseURL: provider.baseUrl,
-      compatibility: "compatible",
       fetch: getProviderFetch(provider),
     });
   }
@@ -301,14 +300,17 @@ export async function streamWithAI<T, I = any>(
             return wrapAsStreamResult(parsed as T);
           }
           // 简单的 fallback 尝试
-          try {
-            const repaired = jsonrepair(error.text);
-            const parsedRepaired = JSON.parse(repaired);
-            const validated = generationConfig.schema.parse(parsedRepaired);
-            log.info(`提供商 ${provider.name} 通过 jsonrepair 解析成功`);
-            return wrapAsStreamResult(validated);
-          } catch (repairError) {
-            // ignore
+          const fallbackSource = error.text?.trim();
+          if (fallbackSource) {
+            try {
+              const repaired = jsonrepair(fallbackSource);
+              const parsedRepaired = JSON.parse(repaired);
+              const validated = generationConfig.schema.parse(parsedRepaired);
+              log.info(`提供商 ${provider.name} 通过 jsonrepair 解析成功`);
+              return wrapAsStreamResult(validated);
+            } catch (repairError) {
+              // ignore
+            }
           }
         }
         if (attempt < retryCount) await sleep(200); // 重试前稍作等待
