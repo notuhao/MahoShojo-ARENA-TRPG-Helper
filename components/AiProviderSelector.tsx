@@ -151,6 +151,8 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
   const apiKeyInputId = useId();
   const latestConfigRef = useRef<UserAIProviderConfig | null>(null);
   const onConfigChangeRef = useRef(onConfigChange);
+  const stage1DefaultModel = defaultStageModels?.stage1;
+  const stage2DefaultModel = defaultStageModels?.stage2;
 
   useEffect(() => {
     onConfigChangeRef.current = onConfigChange;
@@ -199,8 +201,8 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
     const storedStage1 = window.localStorage.getItem(getStage1ModelStorageKey(activeProvider.id));
     const storedStage2 = window.localStorage.getItem(getStage2ModelStorageKey(activeProvider.id));
 
-    const fallbackStage1 = resolveDefaultModel(activeProvider, defaultStageModels?.stage1);
-    const fallbackStage2Candidate = resolveDefaultModel(activeProvider, defaultStageModels?.stage2) || fallbackStage1;
+    const fallbackStage1 = resolveDefaultModel(activeProvider, stage1DefaultModel);
+    const fallbackStage2Candidate = resolveDefaultModel(activeProvider, stage2DefaultModel) || fallbackStage1;
 
     setApiKey(storedApiKey);
     setSelectedStage1Model(storedStage1 || fallbackStage1);
@@ -209,15 +211,15 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
     } else {
       setSelectedStage2Model('');
     }
-  }, [activeProvider, defaultStageModels, isHydrated, mode]);
+  }, [activeProvider, stage1DefaultModel, stage2DefaultModel, isHydrated, mode]);
 
   useEffect(() => {
     if (!isHydrated || !activeProvider) {
       return;
     }
-    const effectiveStage1 = selectedStage1Model || resolveDefaultModel(activeProvider, defaultStageModels?.stage1);
+    const effectiveStage1 = selectedStage1Model || resolveDefaultModel(activeProvider, stage1DefaultModel);
     const effectiveStage2 = mode === 'dual'
-      ? (selectedStage2Model || defaultStageModels?.stage2 || effectiveStage1)
+      ? (selectedStage2Model || stage2DefaultModel || effectiveStage1)
       : undefined;
 
     const nextConfig: UserAIProviderConfig = {
@@ -229,7 +231,7 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
     };
     latestConfigRef.current = nextConfig;
     onConfigChangeRef.current(nextConfig);
-  }, [activeProvider, apiKey, defaultStageModels, isHydrated, mode, selectedStage1Model, selectedStage2Model]);
+  }, [activeProvider, apiKey, isHydrated, mode, selectedStage1Model, selectedStage2Model, stage1DefaultModel, stage2DefaultModel]);
 
   useEffect(() => {
     if (!isHydrated || !activeProvider || typeof window === 'undefined') {
