@@ -131,6 +131,16 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange 
     const providerSelectId = useId();
     const modelSelectId = useId();
     const apiKeyInputId = useId();
+    const latestConfigRef = useRef<UserAIProviderConfig | null>(null);
+    const onConfigChangeRef = useRef(onConfigChange);
+
+    useEffect(() => {
+        onConfigChangeRef.current = onConfigChange;
+        if (!isHydrated) {
+            return;
+        }
+        onConfigChangeRef.current(latestConfigRef.current);
+    }, [isHydrated, onConfigChange]);
 
     const activeProvider = providerOptions.find(provider => provider.id === selectedProviderId) ?? null;
 
@@ -177,7 +187,8 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange 
         if (!activeProvider) {
             setApiKey('');
             setSelectedModel('');
-            onConfigChange(null);
+            latestConfigRef.current = null;
+            onConfigChangeRef.current(null);
             return;
         }
 
@@ -186,7 +197,7 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange 
 
         setApiKey(storedApiKey);
         setSelectedModel(storedModel);
-    }, [activeProvider, isHydrated, onConfigChange, selectedProviderId]);
+    }, [activeProvider, isHydrated, selectedProviderId]);
 
     useEffect(() => {
         if (!isHydrated || !activeProvider) {
@@ -194,12 +205,14 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange 
         }
 
         const effectiveModel = selectedModel || activeProvider.models[0]?.value || '';
-        onConfigChange({
+        const nextConfig: UserAIProviderConfig = {
             providerId: activeProvider.id,
             modelId: effectiveModel,
             apiKey: apiKey.trim(),
-        });
-    }, [activeProvider, apiKey, isHydrated, onConfigChange, selectedModel]);
+        };
+        latestConfigRef.current = nextConfig;
+        onConfigChangeRef.current(nextConfig);
+    }, [activeProvider, apiKey, isHydrated, selectedModel]);
 
     useEffect(() => {
         if (!isHydrated || !activeProvider || typeof window === 'undefined') {
