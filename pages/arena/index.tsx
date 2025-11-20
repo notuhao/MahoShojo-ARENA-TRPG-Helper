@@ -120,7 +120,7 @@ const parseModelOptions = (): ModelOption[] => {
 };
 
 const MODEL_OPTIONS = parseModelOptions();
-const MODEL_STORAGE_KEY = 'arena-model-preference';
+const MODEL_STORAGE_KEY = 'session-console-model-preference';
 
 const deriveCustomDefinitions = (party: SessionCharacter[]): CustomDefinitions | undefined => {
   const skillMap = new Map<string, SkillDefinition>();
@@ -148,7 +148,7 @@ const deriveCustomDefinitions = (party: SessionCharacter[]): CustomDefinitions |
   };
 };
 
-const ArenaPage: React.FC = () => {
+const SessionConsolePage: React.FC = () => {
   const [party, setParty] = useState<SessionCharacter[]>([]);
   const [scenario, setScenario] = useState<ScenarioData | null>(null);
   const [storyLog, setStoryLog] = useState<StoryLogEntry[]>([]);
@@ -549,4 +549,4 @@ const ArenaPage: React.FC = () => {
   );
 };
 
-export default ArenaPage;
+export default SessionConsolePage;

@@ -43,6 +43,14 @@ const featureConfigs: FeatureConfig[] = [
     className: 'dice-roller-card',
     iconSrc: '/dice.svg', 
   },
+  {
+    id: 'session-console',
+    title: '跑团叙事终端',
+    description: '导入角色卡与模组，驱动高互动跑团流程。',
+    href: '/arena',
+    className: 'session-console-card',
+    iconSrc: '/session-placeholder.svg',
+  },
   // 指向魔法少女生成器的外部链接入口
   {
     id: 'mahoshojo-generator',

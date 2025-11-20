@@ -343,6 +343,9 @@
 .rules-card .gradient-overlay {
   background: linear-gradient(45deg, #A8E6C1 0%, #81E3D3 50%, #7DD3C0 100%);
 }
+.session-console-card .gradient-overlay {
+  background: linear-gradient(45deg, #ede9fe 0%, #c4b5fd 40%, #a78bfa 70%, #7c3aed 100%);
+}
 .feature-button-content {
    padding: 1.5rem !important;
 }

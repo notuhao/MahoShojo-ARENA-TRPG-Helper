@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="Session placeholder">
+  <rect width="120" height="120" rx="16" fill="#f3e8ff" />
+  <rect x="18" y="26" width="84" height="52" rx="12" fill="#d8b4fe" />
+  <path d="M30 44h60" stroke="#faf5ff" stroke-width="4" stroke-linecap="round" />
+  <path d="M30 56h36" stroke="#faf5ff" stroke-width="4" stroke-linecap="round" />
+  <path d="M30 68h44" stroke="#faf5ff" stroke-width="4" stroke-linecap="round" />
+  <circle cx="48" cy="94" r="10" fill="#c084fc" />
+  <circle cx="72" cy="94" r="10" fill="#a855f7" />
+  <path d="M48 94c0-6 8-6 8 0" stroke="#fdf4ff" stroke-width="3" stroke-linecap="round" />
+  <path d="M72 94c0-6 8-6 8 0" stroke="#fdf4ff" stroke-width="3" stroke-linecap="round" />
+</svg>
