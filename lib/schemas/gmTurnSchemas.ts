@@ -236,6 +236,14 @@ export const gmTurnRequestSchema = z.object({
     .string()
     .optional()
     .describe('用户选择的模型 ID，仅限后端已配置的模型'),
+  provider_config: z
+    .object({
+      providerId: z.string(),
+      modelId: z.string(),
+      apiKey: z.string().optional(),
+    })
+    .optional()
+    .describe('用户自定义的 AI 提供商配置'),
 });
 
 export type GmTurnRequest = z.infer<typeof gmTurnRequestSchema>;

@@ -1,6 +1,22 @@
 // lib/config.ts
 
 // AI 提供商配置接口
+export interface AIProvider {
+  name: string;
+  apiKey: string;
+  baseUrl: string;
+  model: string | string[]; // 支持单个模型或多个模型数组
+  type: 'openai' | 'google';
+  retryCount?: number;
+  skipProbability?: number;
+  mode?: 'json' | 'auto' | 'tool' | undefined;
+  weight?: number; // 负载均衡权重，数值越大被选中概率越高
+}
+
+export interface OfficialModelOption {
+  id: string;
+  label: string;
+  provider?: string;
 }
 
 export type GmTwoStageMode = 'disabled' | 'same-session' | 'separate-model';
