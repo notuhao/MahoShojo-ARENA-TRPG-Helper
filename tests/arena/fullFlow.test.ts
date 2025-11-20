@@ -21,6 +21,8 @@ const loadText = async (relative: string) => {
 describe('端到端：角色导入 → 用户输入 → AI 输出', () => {
   beforeAll(() => {
     process.env.AI_OFFICIAL_MODELS = JSON.stringify([
+      { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+      { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
       { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
     ]);
   });
@@ -49,6 +51,10 @@ describe('端到端：角色导入 → 用户输入 → AI 输出', () => {
       scenario_data: undefined,
       custom_definitions: undefined,
       model_preference: 'gemini-2.0-flash',
+      stage_model_preferences: {
+        draft: 'gemini-2.0-flash',
+        formatter: 'gemini-2.5-flash-lite',
+      },
     };
 
     const mockDraft = {

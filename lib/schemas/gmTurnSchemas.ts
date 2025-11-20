@@ -56,6 +56,11 @@ const partialDynamicStatSchema = dynamicStatSchema
     message: '需至少提供 current 或 max 字段',
   });
 
+const stageModelPreferenceSchema = z.object({
+  draft: z.string().optional().describe('第一阶段（叙事草稿）的模型偏好'),
+  formatter: z.string().optional().describe('第二阶段（结构化输出）的模型偏好'),
+});
+
 export const stateDeltaEntrySchema = z
   .object({
     characterId: z.string().describe('需要更新的角色ID'),
@@ -236,10 +241,15 @@ export const gmTurnRequestSchema = z.object({
     .string()
     .optional()
     .describe('用户选择的模型 ID，仅限后端已配置的模型'),
+  stage_model_preferences: stageModelPreferenceSchema
+    .optional()
+    .describe('GM 两阶段分别使用的官方模型偏好'),
   provider_config: z
     .object({
       providerId: z.string(),
-      modelId: z.string(),
+      modelId: z.string().optional(),
+      stage1ModelId: z.string().optional(),
+      stage2ModelId: z.string().optional(),
       apiKey: z.string().optional(),
     })
     .optional()

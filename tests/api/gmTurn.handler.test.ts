@@ -11,6 +11,11 @@ const baseRequestPayload = () => {
     manual_adjudication_results: [buildManualResult({ actorId: 'pc-api', actorCodename: sessionCharacter.sheet.info.codename })],
     scenario_data: undefined,
     custom_definitions: sessionCharacter.customDefinitions,
+    model_preference: 'gemini-2.5-flash',
+    stage_model_preferences: {
+      draft: 'gemini-2.5-flash',
+      formatter: 'gemini-2.5-flash-lite',
+    },
   };
 };
 
@@ -21,6 +26,8 @@ const buildMockStreamResult = (response: any) => ({
 describe('api/ai/gm-turn', () => {
   beforeEach(() => {
     process.env.AI_OFFICIAL_MODELS = JSON.stringify([
+      { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+      { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
       { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
       { id: 'gpt-4o', label: 'GPT-4o-preview' },
     ]);
@@ -29,7 +36,14 @@ describe('api/ai/gm-turn', () => {
   it('当模型不在白名单时返回 400', async () => {
     const handlerModule = await import('@/pages/api/ai/gm-turn');
     const handler = handlerModule.default;
-    const requestBody = { ...baseRequestPayload(), model_preference: 'unauthorized-model' };
+    const requestBody = {
+      ...baseRequestPayload(),
+      model_preference: 'unauthorized-model',
+      stage_model_preferences: {
+        draft: 'unauthorized-model',
+        formatter: 'gemini-2.5-flash-lite',
+      },
+    };
     const request = new Request('http://localhost/api/ai/gm-turn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -92,7 +106,14 @@ describe('api/ai/gm-turn', () => {
     const request = new Request('http://localhost/api/ai/gm-turn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...baseRequestPayload(), model_preference: 'gemini-2.0-flash' }),
+      body: JSON.stringify({
+        ...baseRequestPayload(),
+        model_preference: 'gemini-2.0-flash',
+        stage_model_preferences: {
+          draft: 'gemini-2.0-flash',
+          formatter: 'gemini-2.5-flash-lite',
+        },
+      }),
     });
 
     const response = await handler(request as any);

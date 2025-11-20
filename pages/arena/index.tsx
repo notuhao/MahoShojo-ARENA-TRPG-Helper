@@ -101,26 +101,8 @@ const buildStateUpdateSummary = (
 type SkillDefinition = NonNullable<CustomDefinitions['customSkills']>[number];
 type PowerTagDefinition = NonNullable<CustomDefinitions['customPowerTags']>[number];
 
-type ModelOption = {
-  id: string;
-  label: string;
-  provider?: string;
-};
-
-const parseModelOptions = (): ModelOption[] => {
-  const raw = process.env.NEXT_PUBLIC_AI_OFFICIAL_MODELS;
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as ModelOption[];
-    return parsed.filter((option) => option?.id && option?.label);
-  } catch (error) {
-    console.warn('解析 NEXT_PUBLIC_AI_OFFICIAL_MODELS 失败:', error);
-    return [];
-  }
-};
-
-const MODEL_OPTIONS = parseModelOptions();
-const MODEL_STORAGE_KEY = 'session-console-model-preference';
+const DEFAULT_STAGE1_MODEL = process.env.NEXT_PUBLIC_GM_STAGE1_DEFAULT_MODEL || 'gemini-2.5-flash';
+const DEFAULT_STAGE2_MODEL = process.env.NEXT_PUBLIC_GM_STAGE2_DEFAULT_MODEL || 'gemini-2.5-flash-lite';
 
 const deriveCustomDefinitions = (party: SessionCharacter[]): CustomDefinitions | undefined => {
   const skillMap = new Map<string, SkillDefinition>();
@@ -159,7 +141,10 @@ const SessionConsolePage: React.FC = () => {
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const [lastPauseReason, setLastPauseReason] = useState<GmTurnResponse['pause_reason']>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [modelPreference, setModelPreference] = useState<string | undefined>(() => undefined);
+  const [stageModelPreferences, setStageModelPreferences] = useState<{ draft?: string; formatter?: string } | undefined>(() => ({
+    draft: DEFAULT_STAGE1_MODEL,
+    formatter: DEFAULT_STAGE2_MODEL,
+  }));
   const [userProviderConfig, setUserProviderConfig] = useState<UserAIProviderConfig | undefined>();
 
   const characterInputRef = useRef<HTMLInputElement | null>(null);
@@ -169,18 +154,6 @@ const SessionConsolePage: React.FC = () => {
     () => deriveCustomDefinitions(party),
     [party],
   );
-
-  useEffect(() => {
-    if (MODEL_OPTIONS.length === 0) return;
-    const cached = typeof window !== 'undefined' ? window.localStorage.getItem(MODEL_STORAGE_KEY) : null;
-    setModelPreference(cached || MODEL_OPTIONS[0].id);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && modelPreference) {
-      window.localStorage.setItem(MODEL_STORAGE_KEY, modelPreference);
-    }
-  }, [modelPreference]);
 
   const handleAddManualResult = useCallback((result: ManualAdjudicationResult) => {
     setManualResults((prev) => [result, ...prev.filter((item) => item.adjudicationId !== result.adjudicationId)]);
@@ -291,6 +264,9 @@ const SessionConsolePage: React.FC = () => {
       ]);
     }
 
+    const usingCustomProvider = !!userProviderConfig && userProviderConfig.providerId !== 'system';
+    const stagePreferences = !usingCustomProvider ? stageModelPreferences : undefined;
+
     const requestPayload = {
       full_character_sheets: party,
       conversation_history: userEntry
@@ -301,10 +277,13 @@ const SessionConsolePage: React.FC = () => {
       manual_adjudication_results: manualResults.length > 0 ? manualResults : undefined,
       scenario_data: scenario ?? undefined,
       custom_definitions: aggregatedCustomDefinitions,
-      model_preference: modelPreference || undefined,
-      provider_config: userProviderConfig?.providerId !== 'system' ? {
+      model_preference: stagePreferences?.draft,
+      stage_model_preferences: stagePreferences,
+      provider_config: usingCustomProvider ? {
         providerId: userProviderConfig?.providerId || '',
-        modelId: userProviderConfig?.modelId || '',
+        modelId: userProviderConfig?.stage1ModelId || userProviderConfig?.modelId,
+        stage1ModelId: userProviderConfig?.stage1ModelId || userProviderConfig?.modelId,
+        stage2ModelId: userProviderConfig?.stage2ModelId,
         apiKey: userProviderConfig?.apiKey,
       } : undefined,
     };
@@ -408,10 +387,8 @@ const SessionConsolePage: React.FC = () => {
     manualResults,
     party,
     scenario,
-    modelPreference,
-    userProviderConfig?.apiKey,
-    userProviderConfig?.modelId,
-    userProviderConfig?.providerId,
+    stageModelPreferences,
+    userProviderConfig,
   ]);
 
   const clearScenario = useCallback(() => {
@@ -462,12 +439,24 @@ const SessionConsolePage: React.FC = () => {
                 <h3 className="text-sm font-semibold text-slate-700">会话资源</h3>
                 <div className="mt-3 flex flex-col gap-2 text-sm">
                   <AiProviderSelector
+                    mode="dual"
+                    defaultStageModels={{ stage1: DEFAULT_STAGE1_MODEL, stage2: DEFAULT_STAGE2_MODEL }}
                     onConfigChange={(config) => {
                       setUserProviderConfig(config ?? undefined);
-                      if (!config || config.providerId === 'system') {
-                        setModelPreference(config?.modelId);
+                      if (!config) {
+                        setStageModelPreferences({
+                          draft: DEFAULT_STAGE1_MODEL,
+                          formatter: DEFAULT_STAGE2_MODEL,
+                        });
+                        return;
+                      }
+                      if (config.providerId === 'system') {
+                        setStageModelPreferences({
+                          draft: config.stage1ModelId || config.modelId || DEFAULT_STAGE1_MODEL,
+                          formatter: config.stage2ModelId || config.stage1ModelId || config.modelId || DEFAULT_STAGE2_MODEL,
+                        });
                       } else {
-                        setModelPreference(undefined);
+                        setStageModelPreferences(undefined);
                       }
                     }}
                   />

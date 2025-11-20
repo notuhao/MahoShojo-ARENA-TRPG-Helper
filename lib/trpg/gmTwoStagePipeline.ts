@@ -52,7 +52,10 @@ const formatterBaseConfig: GenerationConfig<GmTurnResponse, { prompt: string }> 
   preferStreaming: false,
 };
 
-function createProviderOverride(providerConfig: GmTurnRequest['provider_config']): AIProvider | undefined {
+function createProviderOverride(
+  providerConfig: GmTurnRequest['provider_config'],
+  stage: 'draft' | 'formatter',
+): AIProvider | undefined {
   if (!providerConfig || !providerConfig.providerId || providerConfig.providerId === 'system') {
     return undefined;
   }
@@ -63,11 +66,20 @@ function createProviderOverride(providerConfig: GmTurnRequest['provider_config']
     return undefined;
   }
 
+  const stageModelId = stage === 'draft'
+    ? providerConfig.stage1ModelId || providerConfig.modelId
+    : providerConfig.stage2ModelId || providerConfig.stage1ModelId || providerConfig.modelId;
+
+  if (!stageModelId) {
+    log.warn(`提供商 ${providerConfig.providerId} 未为阶段 ${stage} 指定模型`);
+    return undefined;
+  }
+
   return {
     name: catalogItem.name,
     apiKey: providerConfig.apiKey || '',
     baseUrl: catalogItem.baseUrl,
-    model: providerConfig.modelId,
+    model: stageModelId,
     type: catalogItem.type,
     mode: catalogItem.mode,
     retryCount: 1,
@@ -80,12 +92,11 @@ async function runFormatterWithModel(
   modelOverride?: string,
   providerOverride?: AIProvider
 ): Promise<GmTurnResponse> {
+  const streamOptions = providerOverride ? { providerOverride } : undefined;
   const result = await streamWithAI({ prompt }, {
     ...formatterBaseConfig,
     modelOverride,
-  }, {
-    providerOverride
-  });
+  }, streamOptions);
   return await result.object;
 }
 
@@ -94,52 +105,48 @@ async function runSecondStage(
   preferredModel?: string,
   providerOverride?: AIProvider
 ): Promise<GmTurnResponse> {
-  // 如果有自定义提供商，直接使用，忽略两段式配置中的模型优先级逻辑（因为那些是针对系统模型的）
   if (providerOverride) {
     return await runFormatterWithModel(prompt, preferredModel, providerOverride);
   }
 
-  const mode = config.GM_TURN_TWO_STAGE_MODE;
-  if (mode === 'separate-model') {
-    const priority = config.GM_TURN_FORMATTING_MODEL_PRIORITY;
-    const candidates = [...priority, preferredModel].filter(Boolean) as string[];
-    const uniqueCandidates = candidates.filter((model, index, arr) => {
-      const firstIndex = arr.indexOf(model);
-      return firstIndex === index && hasProviderForModel(model);
-    });
-    if (uniqueCandidates.length > 0) {
-      for (const model of uniqueCandidates) {
-        try {
-          log.debug(`尝试使用格式化模型 ${model}`);
-          return await runFormatterWithModel(prompt, model);
-        } catch (error) {
-          log.warn(`格式化模型 ${model} 失败，尝试下一个`, { error });
-        }
-      }
-    } else {
-      log.debug('未找到匹配配置的格式化模型，使用默认策略');
-    }
-  } else if (preferredModel) {
+  const candidates: string[] = [];
+  if (preferredModel) {
+    candidates.push(preferredModel);
+  }
+  if (config.GM_TURN_TWO_STAGE_MODE === 'separate-model') {
+    candidates.push(...config.GM_TURN_FORMATTING_MODEL_PRIORITY);
+  }
+
+  const uniqueCandidates = candidates
+    .filter((model): model is string => Boolean(model))
+    .filter((model, index, arr) => arr.indexOf(model) === index && hasProviderForModel(model));
+
+  for (const candidate of uniqueCandidates) {
     try {
-      return await runFormatterWithModel(prompt, preferredModel);
+      log.debug(`尝试使用格式化模型 ${candidate}`);
+      return await runFormatterWithModel(prompt, candidate);
     } catch (error) {
-      log.warn(`格式化阶段使用模型 ${preferredModel} 失败，回退默认策略`, { error });
+      log.warn(`格式化模型 ${candidate} 失败，尝试下一个`, { error });
     }
   }
+
+  if (preferredModel && uniqueCandidates.length === 0) {
+    log.debug('未找到匹配配置的格式化模型，使用默认策略');
+  }
+
   return runFormatterWithModel(prompt);
 }
 
 async function runStageOne(
-  request: GmTurnRequest,
   prompt: string,
+  modelOverride?: string,
   providerOverride?: AIProvider
 ): Promise<DraftPayload> {
+  const streamOptions = providerOverride ? { providerOverride } : undefined;
   const result = await streamWithAI({ prompt }, {
     ...draftGenerationConfig,
-    modelOverride: request.model_preference,
-  }, {
-    providerOverride
-  });
+    modelOverride,
+  }, streamOptions);
   log.debug('GM两段式：等待第一阶段对象解析');
   const draft = await result.object;
   log.debug('GM两段式：第一阶段对象已解析');
@@ -149,14 +156,14 @@ async function runStageOne(
 async function runSingleStage(
   request: GmTurnRequest,
   prompt: string,
-  providerOverride?: AIProvider
+  providerOverride?: AIProvider,
+  modelOverride?: string,
 ): Promise<GmTurnResponse> {
+  const streamOptions = providerOverride ? { providerOverride } : undefined;
   const result = await streamWithAI({ prompt }, {
     ...formatterBaseConfig,
-    modelOverride: request.model_preference,
-  }, {
-    providerOverride
-  });
+    modelOverride: modelOverride ?? request.model_preference,
+  }, streamOptions);
   log.debug('GM单阶段：等待对象解析');
   const response = await result.object;
   log.debug('GM单阶段：对象已解析');
@@ -166,12 +173,20 @@ async function runSingleStage(
 export const generateGmResponse = async (
   request: GmTurnRequest,
 ): Promise<{ response: GmTurnResponse; draft?: string }> => {
-  const providerOverride = createProviderOverride(request.provider_config);
+  const draftModelPreference = request.stage_model_preferences?.draft
+    ?? request.model_preference
+    ?? config.GM_STAGE1_DEFAULT_MODEL;
+  const formatterModelPreference = request.stage_model_preferences?.formatter
+    ?? config.GM_STAGE2_DEFAULT_MODEL;
 
-  if (config.GM_TURN_TWO_STAGE_MODE === 'disabled') {
+  const providerOverrideDraft = createProviderOverride(request.provider_config, 'draft');
+  const providerOverrideFormatter = createProviderOverride(request.provider_config, 'formatter');
+  const twoStageMode = config.GM_TURN_TWO_STAGE_MODE;
+
+  if (twoStageMode === 'disabled') {
     const prompt = buildGmUserPrompt(request);
     log.debug('GM两段式：单阶段模式，直接生成');
-    return { response: await runSingleStage(request, prompt, providerOverride) };
+    return { response: await runSingleStage(request, prompt, providerOverrideDraft, draftModelPreference) };
   }
 
   const draftPrompt = buildGmDraftPrompt(request);
@@ -179,19 +194,23 @@ export const generateGmResponse = async (
 
   try {
     log.debug('GM两段式：开始第一阶段草稿生成');
-    draftPayload = await runStageOne(request, draftPrompt, providerOverride);
+    draftPayload = await runStageOne(draftPrompt, draftModelPreference, providerOverrideDraft);
     log.debug('GM两段式：第一阶段完成', { draftLength: draftPayload.draft.length });
   } catch (draftError) {
     log.error('GM 第一阶段草稿生成失败，回退至单阶段模式', { error: draftError });
     const fallbackPrompt = buildGmUserPrompt(request);
-    return { response: await runSingleStage(request, fallbackPrompt, providerOverride) };
+    return { response: await runSingleStage(request, fallbackPrompt, providerOverrideDraft, draftModelPreference) };
   }
 
   const formatterPrompt = buildGmFormatterPrompt(request, draftPayload.draft);
 
   try {
     log.debug('GM两段式：开始第二阶段结构化');
-    const formatterResponse = await runSecondStage(formatterPrompt, request.model_preference, providerOverride);
+    const formatterResponse = await runSecondStage(
+      formatterPrompt,
+      formatterModelPreference,
+      providerOverrideFormatter,
+    );
     log.debug('GM两段式：第二阶段完成', {
       narrativeLength: formatterResponse.narrative_chunk.length,
       stateUpdates: formatterResponse.state_updates.length,
@@ -200,7 +219,7 @@ export const generateGmResponse = async (
   } catch (formatError) {
     log.error('GM 第二阶段格式化失败，回退至单阶段模式', { error: formatError });
     const fallbackPrompt = buildGmUserPrompt(request);
-    const fallbackResponse = await runSingleStage(request, fallbackPrompt, providerOverride);
+    const fallbackResponse = await runSingleStage(request, fallbackPrompt, providerOverrideDraft, draftModelPreference);
     return { response: fallbackResponse, draft: draftPayload.draft };
   }
 };

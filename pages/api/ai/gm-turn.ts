@@ -51,21 +51,27 @@ export default async function handler(req: NextRequest) {
       historyCount: parsedRequest.conversation_history.length,
       hasManual: !!parsedRequest.manual_adjudication_results?.length,
     });
-    if (
-      !parsedRequest.provider_config && // 仅当未使用自定义提供商时才校验官方模型白名单
-      parsedRequest.model_preference &&
-      serviceConfig.OFFICIAL_MODELS.length > 0 &&
-      !serviceConfig.OFFICIAL_MODELS.some((option) => option.id === parsedRequest.model_preference)
-    ) {
-      return new Response(
-        JSON.stringify({
-          error: `请求的模型 ${parsedRequest.model_preference} 未被列入允许名单`,
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+    if (!parsedRequest.provider_config && serviceConfig.OFFICIAL_MODELS.length > 0) {
+      const requestedModels = [
+        parsedRequest.model_preference,
+        parsedRequest.stage_model_preferences?.draft,
+        parsedRequest.stage_model_preferences?.formatter,
+      ].filter((value): value is string => Boolean(value));
+
+      for (const modelId of requestedModels) {
+        const allowed = serviceConfig.OFFICIAL_MODELS.some((option) => option.id === modelId);
+        if (!allowed) {
+          return new Response(
+            JSON.stringify({
+              error: `请求的模型 ${modelId} 未被列入允许名单`,
+            }),
+            {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+        }
+      }
     }
 
     const { response: payload, draft } = await generateGmResponse(parsedRequest);

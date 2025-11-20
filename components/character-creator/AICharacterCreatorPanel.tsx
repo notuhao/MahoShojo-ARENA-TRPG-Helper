@@ -41,7 +41,7 @@ const AICharacterCreatorPanel: React.FC<AICharacterCreatorPanelProps> = ({
   const handleProviderConfigChange = useCallback((config: UserAIProviderConfig | null) => {
     if (!config || config.providerId === 'system') {
       setCustomProviderConfig(null);
-      setModelPreference(config?.modelId || undefined);
+      setModelPreference(config?.stage1ModelId || config?.modelId || undefined);
       return;
     }
     setCustomProviderConfig(config);
@@ -160,7 +160,9 @@ ${MODIFIER_TAGS.map(t => `- ${t.id} (${t.name}): +${t.cost} PCP`).join('\n')}`;
           providerConfig: customProviderConfig
             ? {
                 providerId: customProviderConfig.providerId,
-                modelId: customProviderConfig.modelId,
+                modelId: customProviderConfig.stage1ModelId || customProviderConfig.modelId,
+                stage1ModelId: customProviderConfig.stage1ModelId || customProviderConfig.modelId,
+                stage2ModelId: customProviderConfig.stage2ModelId,
                 apiKey: customProviderConfig.apiKey,
               }
             : undefined,

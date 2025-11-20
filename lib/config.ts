@@ -85,6 +85,14 @@ const getDefaultModel = (): string | string[] => {
   return 'gemini-2.5-flash';
 };
 
+const getStage1DefaultModel = () => {
+  return process.env.GM_STAGE1_DEFAULT_MODEL || 'gemini-2.5-flash';
+};
+
+const getStage2DefaultModel = () => {
+  return process.env.GM_STAGE2_DEFAULT_MODEL || 'gemini-2.5-flash-lite';
+};
+
 // 获取负载均衡策略
 const getLoadBalanceStrategy = (): string => {
   return process.env.AI_LOAD_BALANCE_STRATEGY || 'random';
@@ -136,6 +144,8 @@ export const config = {
   OFFICIAL_MODELS: parseOfficialModels(),
   GM_TURN_TWO_STAGE_MODE: getGmTwoStageMode(),
   GM_TURN_FORMATTING_MODEL_PRIORITY: parseFormatterPriority(),
+  GM_STAGE1_DEFAULT_MODEL: getStage1DefaultModel(),
+  GM_STAGE2_DEFAULT_MODEL: getStage2DefaultModel(),
 
   // 数据卡管理配置
   DEFAULT_DATA_CARD_CAPACITY: 20,
