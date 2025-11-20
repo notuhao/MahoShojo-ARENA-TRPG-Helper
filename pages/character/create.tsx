@@ -5,6 +5,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
 import Footer from '../../components/Footer';
+import PageHero from '@/components/PageHero';
 import AttributesPanel from '../../components/character-creator/AttributesPanel';
 import DerivedStatsPanel from '../../components/character-creator/DerivedStatsPanel';
 import SkillAllocatorPanel, { CustomSkill } from '../../components/character-creator/SkillAllocatorPanel';
@@ -153,6 +154,13 @@ const CharacterCreatorPage: React.FC = () => {
       return total + cost;
     }, 0);
   }, [character.powers, customEffectTags, customModifierTags]);
+
+  const heroMeta = useMemo(() => [
+    { label: '力量层级', value: levelingData.levels[powerLevel].name },
+    { label: '属性点', value: `${spentAttributePoints}/${totalAttributePoints}`, hint: '已投入 / 预算' },
+    { label: '技能点', value: `${spentSkillPoints}/${totalSkillPoints}`, hint: '含自定义技能' },
+    { label: 'PCP 点', value: `${spentPcpPoints}/${totalPcp}` },
+  ], [powerLevel, spentAttributePoints, totalAttributePoints, spentSkillPoints, totalSkillPoints, spentPcpPoints, totalPcp]);
 
   // --- 副作用 (useEffect) ---
   // 当核心属性变化时，自动重新计算并更新衍生数值的上限值
@@ -443,8 +451,14 @@ const CharacterCreatorPage: React.FC = () => {
             </section>
           </div>
 
-          <div className="mt-12 text-center"><Link href="/" className="text-purple-600 hover:underline">&larr; 返回首页</Link></div>
-          <Footer />
+          <div className="mt-12 text-center">
+            <Link href="/" className="text-purple-600 hover:underline">
+              &larr; 返回首页
+            </Link>
+          </div>
+          <div className="mt-8">
+            <Footer />
+          </div>
         </div>
 
         {/* 角色卡图片预览模态框 */}
