@@ -409,6 +409,9 @@ const ArenaPage: React.FC = () => {
     party,
     scenario,
     modelPreference,
+    userProviderConfig?.apiKey,
+    userProviderConfig?.modelId,
+    userProviderConfig?.providerId,
   ]);
 
   const clearScenario = useCallback(() => {
@@ -460,9 +463,9 @@ const ArenaPage: React.FC = () => {
                 <div className="mt-3 flex flex-col gap-2 text-sm">
                   <AiProviderSelector
                     onConfigChange={(config) => {
-                      setUserProviderConfig(config);
-                      if (config.providerId === 'system') {
-                        setModelPreference(config.modelId);
+                      setUserProviderConfig(config ?? undefined);
+                      if (!config || config.providerId === 'system') {
+                        setModelPreference(config?.modelId);
                       } else {
                         setModelPreference(undefined);
                       }

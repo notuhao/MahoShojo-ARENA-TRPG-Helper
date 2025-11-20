@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useId } from 'react';
 import { AI_PROVIDER_CATALOG, type AIProviderOption } from '@/lib/ai/constants';
 import Link from 'next/link';
 
@@ -31,9 +31,10 @@ interface CustomSelectProps {
     onChange: (value: string) => void;
     placeholder: string;
     disabled?: boolean;
+    controlId?: string;
 }
 
-const CustomSelect: React.FC<CustomSelectProps> = ({ options, value, onChange, placeholder, disabled = false }) => {
+const CustomSelect: React.FC<CustomSelectProps> = ({ options, value, onChange, placeholder, disabled = false, controlId }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -82,6 +83,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ options, value, onChange, p
                 onClick={() => !disabled && setIsOpen(prev => !prev)}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
+                id={controlId}
                 disabled={disabled}
             >
                 {renderSelected()}
@@ -126,6 +128,9 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange 
     const [selectedModel, setSelectedModel] = useState<string>('');
     const [apiKey, setApiKey] = useState<string>('');
     const [isHydrated, setIsHydrated] = useState<boolean>(false);
+    const providerSelectId = useId();
+    const modelSelectId = useId();
+    const apiKeyInputId = useId();
 
     const activeProvider = providerOptions.find(provider => provider.id === selectedProviderId) ?? null;
 
@@ -232,14 +237,15 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange 
 
     return (
         <div className="input-group">
-            <label className="input-label">自定义 AI 能力提供商 (可选)</label>
+            <label className="input-label" htmlFor={providerSelectId}>自定义 AI 能力提供商 (可选)</label>
             <CustomSelect
                 options={providerSelectOptions}
                 value={selectedProviderId}
                 onChange={setSelectedProviderId}
                 placeholder="选择供应商"
+                controlId={providerSelectId}
             />
-            <label className="text-xs text-gray-500">更多提供商正在添加中...</label>
+            <p className="text-xs text-gray-500">更多提供商正在添加中...</p>
             {
                 activeProvider && (activeProvider.id !== 'system') && (
                     <div className="mt-4">
@@ -257,12 +263,13 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange 
 
             <div className="mt-3 space-y-3 rounded-lg border border-pink-200 bg-pink-50 p-3 text-sm text-gray-700">
                 <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">选择模型</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1" htmlFor={modelSelectId}>选择模型</label>
                     <CustomSelect
                         options={modelSelectOptions}
                         value={selectedModel}
                         onChange={setSelectedModel}
                         placeholder="选择模型"
+                        controlId={modelSelectId}
                         disabled={modelSelectOptions.length === 0}
                     />
                 </div>
@@ -270,8 +277,9 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange 
                 {
                     activeProvider && activeProvider.id !== 'system' && (
                         <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">API Key</label>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1" htmlFor={apiKeyInputId}>API Key</label>
                             <input
+                                id={apiKeyInputId}
                                 className="input-field"
                                 placeholder="请输入该供应商的 API Key"
                                 value={apiKey}
