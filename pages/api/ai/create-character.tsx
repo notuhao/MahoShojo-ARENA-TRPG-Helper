@@ -4,6 +4,8 @@ import { streamWithAI, GenerationConfig } from '@/lib/ai';
 import { aiGeneratedCharacterSchema, AIGeneratedCharacterData } from '@/lib/schemas/characterSheetSchema';
 import { SKILLS } from '@/lib/trpg/skills';
 import { EFFECT_TAGS, MODIFIER_TAGS } from '@/lib/trpg/powers';
+import { config as serviceConfig, type AIProvider } from '@/lib/config';
+import { AI_PROVIDER_CATALOG } from '@/lib/ai/constants';
 import type { NextRequest } from 'next/server';
 
 /**
@@ -20,21 +22,80 @@ export const config = {
   runtime: 'edge',
 };
 
+interface ProviderConfigPayload {
+  providerId: string;
+  modelId: string;
+  apiKey?: string;
+}
+
+const createProviderOverride = (providerConfig?: ProviderConfigPayload): AIProvider | undefined => {
+  const providerId = providerConfig?.providerId?.trim();
+  const modelId = providerConfig?.modelId?.trim();
+  if (!providerId || providerId === 'system' || !modelId) {
+    return undefined;
+  }
+
+  const catalogItem = AI_PROVIDER_CATALOG.find((item) => item.id === providerId);
+  if (!catalogItem) {
+    console.warn(`未找到 ID 为 ${providerId} 的自定义提供商目录配置`);
+    return undefined;
+  }
+
+  return {
+    name: catalogItem.name,
+    apiKey: providerConfig?.apiKey?.trim() || '',
+    baseUrl: catalogItem.baseUrl,
+    model: modelId,
+    type: catalogItem.type,
+    mode: catalogItem.mode,
+    retryCount: 1,
+    skipProbability: 0,
+  };
+};
+
 export default async function handler(req: NextRequest) {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405 });
   }
 
   try {
-    const { 
-      prompt: userPrompt, 
-      isDowngrade = true,
+    const {
+      prompt: userPrompt,
+      isDowngrade,
       allowCustomSkills = false,
-      allowCustomPowers = false
+      allowCustomPowers = false,
+      modelPreference: requestedModelPreference,
+      providerConfig,
     } = await req.json();
 
     if (!userPrompt) {
       return new Response(JSON.stringify({ error: 'User prompt is required' }), { status: 400 });
+    }
+
+    const providerOverride = createProviderOverride(providerConfig);
+    const sanitizedModelPreference =
+      typeof requestedModelPreference === 'string' && requestedModelPreference.trim().length > 0
+        ? requestedModelPreference.trim()
+        : undefined;
+    const normalizedModelPreference = providerOverride
+      ? undefined
+      : sanitizedModelPreference ??
+        (typeof isDowngrade === 'boolean'
+          ? (isDowngrade ? 'gemini-2.5-flash-lite' : undefined)
+          : undefined);
+
+    if (
+      !providerOverride &&
+      normalizedModelPreference &&
+      serviceConfig.OFFICIAL_MODELS.length > 0 &&
+      !serviceConfig.OFFICIAL_MODELS.some((option) => option.id === normalizedModelPreference)
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: `请求的模型 ${normalizedModelPreference} 未被列入允许名单`,
+        }),
+        { status: 400 },
+      );
     }
 
     // --- 动态构建系统提示词 ---
@@ -79,11 +140,16 @@ export default async function handler(req: NextRequest) {
       temperature: 0.8,
       maxTokens: 4096,
       taskName: 'TRPG角色创建',
-      modelOverride: isDowngrade ? "gemini-2.5-flash-lite" : undefined,
+      modelOverride: providerOverride
+        ? (typeof providerOverride.model === 'string'
+            ? providerOverride.model
+            : providerOverride.model[0] || undefined)
+        : normalizedModelPreference,
     };
 
     // 调用AI服务核心
-    const result = await streamWithAI({ prompt: userPrompt }, generationConfig);
+    const streamOptions = providerOverride ? { providerOverride } : undefined;
+    const result = await streamWithAI({ prompt: userPrompt }, generationConfig, streamOptions);
     
     return result.toTextStreamResponse();
 

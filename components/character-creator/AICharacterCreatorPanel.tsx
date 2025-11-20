@@ -1,11 +1,12 @@
 // components/character-creator/AICharacterCreatorPanel.tsx
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Sparkles, BrainCircuit, ClipboardCopy } from 'lucide-react';
 import { type AIGeneratedCharacterData } from '@/lib/schemas/characterSheetSchema';
 import ExternalAIModal from './ExternalAIModal'; // 1. 引入新创建的模态框组件
 import { SKILLS } from '@/lib/trpg/skills'; // 2. 引入生成提示词所需的规则数据
 import { EFFECT_TAGS, MODIFIER_TAGS } from '@/lib/trpg/powers';
+import AiProviderSelector, { type UserAIProviderConfig } from '@/components/AiProviderSelector';
 
 /**
  * @fileoverview AI辅助角色创建面板组件 (V2.2)。
@@ -28,13 +29,24 @@ const AICharacterCreatorPanel: React.FC<AICharacterCreatorPanelProps> = ({
 }) => {
   const [prompt, setPrompt] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [useLightweightModel, setUseLightweightModel] = useState(true);
+  const [modelPreference, setModelPreference] = useState<string | undefined>(undefined);
+  const [customProviderConfig, setCustomProviderConfig] = useState<UserAIProviderConfig | null>(null);
   
   const [allowCustomSkills, setAllowCustomSkills] = useState(false);
   const [allowCustomPowers, setAllowCustomPowers] = useState(false);
 
   // 3. 新增状态来控制外部AI模态框的可见性
   const [isExternalModalOpen, setIsExternalModalOpen] = useState(false);
+
+  const handleProviderConfigChange = useCallback((config: UserAIProviderConfig | null) => {
+    if (!config || config.providerId === 'system') {
+      setCustomProviderConfig(null);
+      setModelPreference(config?.modelId || undefined);
+      return;
+    }
+    setCustomProviderConfig(config);
+    setModelPreference(undefined);
+  }, []);
 
   /**
    * [核心更新] 生成完整的系统提示词，现在包含清晰的JSON Schema定义。
@@ -142,9 +154,16 @@ ${MODIFIER_TAGS.map(t => `- ${t.id} (${t.name}): +${t.cost} PCP`).join('\n')}`;
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt,
-          isDowngrade: useLightweightModel,
           allowCustomSkills,
           allowCustomPowers,
+          modelPreference: modelPreference || undefined,
+          providerConfig: customProviderConfig
+            ? {
+                providerId: customProviderConfig.providerId,
+                modelId: customProviderConfig.modelId,
+                apiKey: customProviderConfig.apiKey,
+              }
+            : undefined,
         }),
       });
 
@@ -205,17 +224,12 @@ ${MODIFIER_TAGS.map(t => `- ${t.id} (${t.name}): +${t.cost} PCP`).join('\n')}`;
           </label>
         </div>
 
-        <div className="flex items-center justify-center">
-          <label className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={useLightweightModel}
-              onChange={(e) => setUseLightweightModel(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 mr-2"
-              disabled={isGenerating}
-            />
-            使用轻量模型 (提高成功率和速度)
-          </label>
+        <div className="rounded-xl border border-purple-100 bg-white/70 p-4">
+          <p className="text-sm font-semibold text-gray-700 mb-2">AI 模型与提供商</p>
+          <AiProviderSelector onConfigChange={handleProviderConfigChange} />
+          <p className="mt-2 text-xs text-gray-500">
+            不设置即使用系统默认策略；如需指定轻量模型，请在上方选择系统提供商并切换对应模型。
+          </p>
         </div>
 
         {/* 4. 修改按钮布局，并添加入口按钮 */}
