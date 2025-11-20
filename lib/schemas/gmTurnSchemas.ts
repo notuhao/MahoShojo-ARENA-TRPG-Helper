@@ -61,6 +61,14 @@ const stageModelPreferenceSchema = z.object({
   formatter: z.string().optional().describe('第二阶段（结构化输出）的模型偏好'),
 });
 
+const providerConfigSchema = z.object({
+  providerId: z.string(),
+  modelId: z.string().optional(),
+  stage1ModelId: z.string().optional(),
+  stage2ModelId: z.string().optional(),
+  apiKey: z.string().optional(),
+});
+
 export const stateDeltaEntrySchema = z
   .object({
     characterId: z.string().describe('需要更新的角色ID'),
@@ -244,16 +252,17 @@ export const gmTurnRequestSchema = z.object({
   stage_model_preferences: stageModelPreferenceSchema
     .optional()
     .describe('GM 两阶段分别使用的官方模型偏好'),
-  provider_config: z
-    .object({
-      providerId: z.string(),
-      modelId: z.string().optional(),
-      stage1ModelId: z.string().optional(),
-      stage2ModelId: z.string().optional(),
-      apiKey: z.string().optional(),
-    })
+  provider_config: providerConfigSchema
     .optional()
     .describe('用户自定义的 AI 提供商配置'),
+  stage_provider_configs: z
+    .object({
+      draft: providerConfigSchema.optional(),
+      formatter: providerConfigSchema.optional(),
+    })
+    .optional()
+    .describe('GM 两阶段独立的自定义提供商配置'),
 });
 
 export type GmTurnRequest = z.infer<typeof gmTurnRequestSchema>;
+export type ProviderConfigInput = z.infer<typeof providerConfigSchema>;

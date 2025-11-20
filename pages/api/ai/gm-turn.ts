@@ -51,12 +51,32 @@ export default async function handler(req: NextRequest) {
       historyCount: parsedRequest.conversation_history.length,
       hasManual: !!parsedRequest.manual_adjudication_results?.length,
     });
-    if (!parsedRequest.provider_config && serviceConfig.OFFICIAL_MODELS.length > 0) {
-      const requestedModels = [
-        parsedRequest.model_preference,
-        parsedRequest.stage_model_preferences?.draft,
-        parsedRequest.stage_model_preferences?.formatter,
-      ].filter((value): value is string => Boolean(value));
+    const hasLegacyCustomProvider =
+      !!parsedRequest.provider_config && parsedRequest.provider_config.providerId !== 'system';
+    const stageOverrides = parsedRequest.stage_provider_configs;
+    const stageUsesCustomProvider = (stage: 'draft' | 'formatter') => {
+      const candidate = stageOverrides?.[stage];
+      if (candidate && candidate.providerId && candidate.providerId !== 'system') {
+        return true;
+      }
+      return hasLegacyCustomProvider;
+    };
+
+    if (serviceConfig.OFFICIAL_MODELS.length > 0) {
+      const requestedModels: string[] = [];
+      if (!stageUsesCustomProvider('draft')) {
+        if (parsedRequest.model_preference) {
+          requestedModels.push(parsedRequest.model_preference);
+        }
+        if (parsedRequest.stage_model_preferences?.draft) {
+          requestedModels.push(parsedRequest.stage_model_preferences.draft);
+        }
+      }
+      if (!stageUsesCustomProvider('formatter')) {
+        if (parsedRequest.stage_model_preferences?.formatter) {
+          requestedModels.push(parsedRequest.stage_model_preferences.formatter);
+        }
+      }
 
       for (const modelId of requestedModels) {
         const allowed = serviceConfig.OFFICIAL_MODELS.some((option) => option.id === modelId);
@@ -101,7 +121,7 @@ export default async function handler(req: NextRequest) {
     log.error('GM轮次生成失败', { error: error?.message });
     const isConfigError =
       typeof error?.message === 'string' &&
-      (error.message.includes('未找到支持模型') || error.message.includes('未被列入允许名单'));
+      error.message.includes('未被列入允许名单');
     log.error('GM轮次生成失败', {
       durationMs: Date.now() - requestStartedAt,
       details: error?.message,

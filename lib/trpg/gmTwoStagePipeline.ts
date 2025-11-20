@@ -52,6 +52,16 @@ const formatterBaseConfig: GenerationConfig<GmTurnResponse, { prompt: string }> 
   preferStreaming: false,
 };
 
+const resolveProviderConfigForStage = (
+  request: GmTurnRequest,
+  stage: 'draft' | 'formatter',
+): GmTurnRequest['provider_config'] | undefined => {
+  if (request.stage_provider_configs?.[stage]) {
+    return request.stage_provider_configs[stage] ?? undefined;
+  }
+  return request.provider_config;
+};
+
 function createProviderOverride(
   providerConfig: GmTurnRequest['provider_config'],
   stage: 'draft' | 'formatter',
@@ -179,8 +189,8 @@ export const generateGmResponse = async (
   const formatterModelPreference = request.stage_model_preferences?.formatter
     ?? config.GM_STAGE2_DEFAULT_MODEL;
 
-  const providerOverrideDraft = createProviderOverride(request.provider_config, 'draft');
-  const providerOverrideFormatter = createProviderOverride(request.provider_config, 'formatter');
+  const providerOverrideDraft = createProviderOverride(resolveProviderConfigForStage(request, 'draft'), 'draft');
+  const providerOverrideFormatter = createProviderOverride(resolveProviderConfigForStage(request, 'formatter'), 'formatter');
   const twoStageMode = config.GM_TURN_TWO_STAGE_MODE;
 
   if (twoStageMode === 'disabled') {

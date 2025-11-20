@@ -104,6 +104,20 @@ type PowerTagDefinition = NonNullable<CustomDefinitions['customPowerTags']>[numb
 const DEFAULT_STAGE1_MODEL = process.env.NEXT_PUBLIC_GM_STAGE1_DEFAULT_MODEL || 'gemini-2.5-flash';
 const DEFAULT_STAGE2_MODEL = process.env.NEXT_PUBLIC_GM_STAGE2_DEFAULT_MODEL || 'gemini-2.5-flash-lite';
 
+const mapUserConfigToProviderPayload = (config?: UserAIProviderConfig | null) => {
+  if (!config) return undefined;
+  return {
+    providerId: config.providerId,
+    modelId: config.stage1ModelId || config.modelId,
+    stage1ModelId: config.stage1ModelId || config.modelId,
+    stage2ModelId: config.stage2ModelId,
+    apiKey: config.apiKey,
+  };
+};
+
+const isCustomProviderConfig = (config?: UserAIProviderConfig | null) =>
+  !!config && config.providerId !== 'system';
+
 const deriveCustomDefinitions = (party: SessionCharacter[]): CustomDefinitions | undefined => {
   const skillMap = new Map<string, SkillDefinition>();
   const tagMap = new Map<string, PowerTagDefinition>();
@@ -141,11 +155,17 @@ const SessionConsolePage: React.FC = () => {
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const [lastPauseReason, setLastPauseReason] = useState<GmTurnResponse['pause_reason']>();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [stageModelPreferences, setStageModelPreferences] = useState<{ draft?: string; formatter?: string } | undefined>(() => ({
+  const [stageModelPreferences, setStageModelPreferences] = useState<{ draft?: string; formatter?: string }>(() => ({
     draft: DEFAULT_STAGE1_MODEL,
     formatter: DEFAULT_STAGE2_MODEL,
   }));
-  const [userProviderConfig, setUserProviderConfig] = useState<UserAIProviderConfig | undefined>();
+  const [stageProviderConfigs, setStageProviderConfigs] = useState<{
+    draft?: UserAIProviderConfig | null;
+    formatter?: UserAIProviderConfig | null;
+  }>({
+    draft: null,
+    formatter: null,
+  });
 
   const characterInputRef = useRef<HTMLInputElement | null>(null);
   const scenarioInputRef = useRef<HTMLInputElement | null>(null);
@@ -154,6 +174,26 @@ const SessionConsolePage: React.FC = () => {
     () => deriveCustomDefinitions(party),
     [party],
   );
+
+  const handleStageConfigChange = useCallback((stage: 'draft' | 'formatter', config: UserAIProviderConfig | null) => {
+    setStageProviderConfigs((prev) => ({
+      ...prev,
+      [stage]: config,
+    }));
+    const fallback = stage === 'draft' ? DEFAULT_STAGE1_MODEL : DEFAULT_STAGE2_MODEL;
+    if (!config || config.providerId === 'system') {
+      const resolvedModel = config?.stage1ModelId || config?.modelId || fallback;
+      setStageModelPreferences((prev) => ({
+        ...prev,
+        [stage]: resolvedModel,
+      }));
+      return;
+    }
+    setStageModelPreferences((prev) => ({
+      ...prev,
+      [stage]: undefined,
+    }));
+  }, []);
 
   const handleAddManualResult = useCallback((result: ManualAdjudicationResult) => {
     setManualResults((prev) => [result, ...prev.filter((item) => item.adjudicationId !== result.adjudicationId)]);
@@ -264,8 +304,27 @@ const SessionConsolePage: React.FC = () => {
       ]);
     }
 
-    const usingCustomProvider = !!userProviderConfig && userProviderConfig.providerId !== 'system';
-    const stagePreferences = !usingCustomProvider ? stageModelPreferences : undefined;
+    const draftConfig = stageProviderConfigs.draft;
+    const formatterConfig = stageProviderConfigs.formatter;
+    const customDraftOverride = isCustomProviderConfig(draftConfig)
+      ? mapUserConfigToProviderPayload(draftConfig)
+      : undefined;
+    const customFormatterOverride = isCustomProviderConfig(formatterConfig)
+      ? mapUserConfigToProviderPayload(formatterConfig)
+      : undefined;
+
+    const stagePreferencesPayload = {
+      draft: customDraftOverride ? undefined : stageModelPreferences?.draft,
+      formatter: customFormatterOverride ? undefined : stageModelPreferences?.formatter,
+    };
+    const hasStagePreferences = Boolean(stagePreferencesPayload.draft || stagePreferencesPayload.formatter);
+    const legacyProviderConfig = customDraftOverride && !customFormatterOverride ? customDraftOverride : undefined;
+    const stageProviderPayload = customDraftOverride || customFormatterOverride
+      ? {
+          ...(customDraftOverride ? { draft: customDraftOverride } : {}),
+          ...(customFormatterOverride ? { formatter: customFormatterOverride } : {}),
+        }
+      : undefined;
 
     const requestPayload = {
       full_character_sheets: party,
@@ -277,15 +336,10 @@ const SessionConsolePage: React.FC = () => {
       manual_adjudication_results: manualResults.length > 0 ? manualResults : undefined,
       scenario_data: scenario ?? undefined,
       custom_definitions: aggregatedCustomDefinitions,
-      model_preference: stagePreferences?.draft,
-      stage_model_preferences: stagePreferences,
-      provider_config: usingCustomProvider ? {
-        providerId: userProviderConfig?.providerId || '',
-        modelId: userProviderConfig?.stage1ModelId || userProviderConfig?.modelId,
-        stage1ModelId: userProviderConfig?.stage1ModelId || userProviderConfig?.modelId,
-        stage2ModelId: userProviderConfig?.stage2ModelId,
-        apiKey: userProviderConfig?.apiKey,
-      } : undefined,
+      model_preference: stagePreferencesPayload.draft,
+      stage_model_preferences: hasStagePreferences ? stagePreferencesPayload : undefined,
+      provider_config: legacyProviderConfig,
+      stage_provider_configs: stageProviderPayload,
     };
 
     try {
@@ -388,7 +442,7 @@ const SessionConsolePage: React.FC = () => {
     party,
     scenario,
     stageModelPreferences,
-    userProviderConfig,
+    stageProviderConfigs,
   ]);
 
   const clearScenario = useCallback(() => {
@@ -438,28 +492,22 @@ const SessionConsolePage: React.FC = () => {
               <div className="mt-4 rounded-2xl border border-purple-200 bg-white/80 p-4 shadow-sm backdrop-blur">
                 <h3 className="text-sm font-semibold text-slate-700">会话资源</h3>
                 <div className="mt-3 flex flex-col gap-2 text-sm">
-                  <AiProviderSelector
-                    mode="dual"
-                    defaultStageModels={{ stage1: DEFAULT_STAGE1_MODEL, stage2: DEFAULT_STAGE2_MODEL }}
-                    onConfigChange={(config) => {
-                      setUserProviderConfig(config ?? undefined);
-                      if (!config) {
-                        setStageModelPreferences({
-                          draft: DEFAULT_STAGE1_MODEL,
-                          formatter: DEFAULT_STAGE2_MODEL,
-                        });
-                        return;
-                      }
-                      if (config.providerId === 'system') {
-                        setStageModelPreferences({
-                          draft: config.stage1ModelId || config.modelId || DEFAULT_STAGE1_MODEL,
-                          formatter: config.stage2ModelId || config.stage1ModelId || config.modelId || DEFAULT_STAGE2_MODEL,
-                        });
-                      } else {
-                        setStageModelPreferences(undefined);
-                      }
-                    }}
-                  />
+                  <div className="space-y-3">
+                    <AiProviderSelector
+                      label="步骤 1 · 叙事草稿提供商"
+                      description="用于生成长篇叙事草稿，可选择系统默认或自备 API Key。"
+                      storageNamespace="arena.stage1"
+                      defaultStageModels={{ stage1: DEFAULT_STAGE1_MODEL }}
+                      onConfigChange={(config) => handleStageConfigChange('draft', config)}
+                    />
+                    <AiProviderSelector
+                      label="步骤 2 · Delta JSON 格式化提供商"
+                      description="负责解析草稿并产出 Delta JSON，可选更轻量或不同提供商。"
+                      storageNamespace="arena.stage2"
+                      defaultStageModels={{ stage1: DEFAULT_STAGE2_MODEL }}
+                      onConfigChange={(config) => handleStageConfigChange('formatter', config)}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => characterInputRef.current?.click()}

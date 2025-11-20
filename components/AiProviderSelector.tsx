@@ -17,6 +17,9 @@ interface AiProviderSelectorProps {
     stage1?: string;
     stage2?: string;
   };
+  storageNamespace?: string;
+  label?: string;
+  description?: string;
 }
 
 const STORAGE_SELECTED_PROVIDER = 'arena.customProvider.selected';
@@ -24,9 +27,22 @@ const STORAGE_API_KEY_PREFIX = 'arena.customProvider.apiKey.';
 const STORAGE_STAGE1_MODEL_PREFIX = 'arena.customProvider.stage1Model.';
 const STORAGE_STAGE2_MODEL_PREFIX = 'arena.customProvider.stage2Model.';
 
-const getApiKeyStorageKey = (providerId: string) => `${STORAGE_API_KEY_PREFIX}${providerId}`;
-const getStage1ModelStorageKey = (providerId: string) => `${STORAGE_STAGE1_MODEL_PREFIX}${providerId}`;
-const getStage2ModelStorageKey = (providerId: string) => `${STORAGE_STAGE2_MODEL_PREFIX}${providerId}`;
+const buildKeyWithNamespace = (base: string, namespace?: string) => {
+  if (!namespace) return base;
+  return `${base}.${namespace}`;
+};
+
+const buildPrefixWithNamespace = (prefix: string, namespace?: string) => {
+  if (!namespace) return prefix;
+  if (prefix.endsWith('.')) {
+    return `${prefix}${namespace}.`;
+  }
+  return `${prefix}.${namespace}.`;
+};
+
+const getApiKeyStorageKey = (providerId: string, namespace?: string) => `${buildPrefixWithNamespace(STORAGE_API_KEY_PREFIX, namespace)}${providerId}`;
+const getStage1ModelStorageKey = (providerId: string, namespace?: string) => `${buildPrefixWithNamespace(STORAGE_STAGE1_MODEL_PREFIX, namespace)}${providerId}`;
+const getStage2ModelStorageKey = (providerId: string, namespace?: string) => `${buildPrefixWithNamespace(STORAGE_STAGE2_MODEL_PREFIX, namespace)}${providerId}`;
 
 interface CustomSelectOption {
   value: string;
@@ -138,7 +154,14 @@ const resolveDefaultModel = (provider: AIProviderOption | null, preferred?: stri
   return provider.models[0]?.value || '';
 };
 
-const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange, mode = 'single', defaultStageModels }) => {
+const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({
+  onConfigChange,
+  mode = 'single',
+  defaultStageModels,
+  storageNamespace,
+  label,
+  description,
+}) => {
   const providerOptions = useMemo<AIProviderOption[]>(() => AI_PROVIDER_CATALOG, []);
   const [selectedProviderId, setSelectedProviderId] = useState<string>('system');
   const [selectedStage1Model, setSelectedStage1Model] = useState<string>('');
@@ -153,6 +176,14 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
   const onConfigChangeRef = useRef(onConfigChange);
   const stage1DefaultModel = defaultStageModels?.stage1;
   const stage2DefaultModel = defaultStageModels?.stage2;
+  const providerStorageKey = useMemo(
+    () => buildKeyWithNamespace(STORAGE_SELECTED_PROVIDER, storageNamespace),
+    [storageNamespace],
+  );
+  const helperText = description ?? (mode === 'dual'
+    ? '可针对 GM 两阶段分别挑选模型，下面可选“系统默认策略”或自带 API Key。'
+    : '更多提供商正在添加中...');
+  const labelText = label ?? '自定义 AI 能力提供商 (可选)';
 
   useEffect(() => {
     onConfigChangeRef.current = onConfigChange;
@@ -168,7 +199,7 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
     if (typeof window === 'undefined') {
       return;
     }
-    const savedProviderId = window.localStorage.getItem(STORAGE_SELECTED_PROVIDER) || 'system';
+    const savedProviderId = window.localStorage.getItem(providerStorageKey) || 'system';
     const validProvider = providerOptions.find(item => item.id === savedProviderId) ?? providerOptions[0] ?? null;
     if (!validProvider) {
       setSelectedProviderId('system');
@@ -176,10 +207,10 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
       setSelectedProviderId(validProvider.id);
     }
     if (!savedProviderId) {
-      window.localStorage.setItem(STORAGE_SELECTED_PROVIDER, validProvider?.id ?? 'system');
+      window.localStorage.setItem(providerStorageKey, validProvider?.id ?? 'system');
     }
     setIsHydrated(true);
-  }, [providerOptions]);
+  }, [providerOptions, providerStorageKey]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') {
@@ -195,11 +226,11 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
       return;
     }
 
-    window.localStorage.setItem(STORAGE_SELECTED_PROVIDER, activeProvider.id);
+    window.localStorage.setItem(providerStorageKey, activeProvider.id);
 
-    const storedApiKey = window.localStorage.getItem(getApiKeyStorageKey(activeProvider.id)) || '';
-    const storedStage1 = window.localStorage.getItem(getStage1ModelStorageKey(activeProvider.id));
-    const storedStage2 = window.localStorage.getItem(getStage2ModelStorageKey(activeProvider.id));
+    const storedApiKey = window.localStorage.getItem(getApiKeyStorageKey(activeProvider.id, storageNamespace)) || '';
+    const storedStage1 = window.localStorage.getItem(getStage1ModelStorageKey(activeProvider.id, storageNamespace));
+    const storedStage2 = window.localStorage.getItem(getStage2ModelStorageKey(activeProvider.id, storageNamespace));
 
     const fallbackStage1 = resolveDefaultModel(activeProvider, stage1DefaultModel);
     const fallbackStage2Candidate = resolveDefaultModel(activeProvider, stage2DefaultModel) || fallbackStage1;
@@ -211,7 +242,7 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
     } else {
       setSelectedStage2Model('');
     }
-  }, [activeProvider, stage1DefaultModel, stage2DefaultModel, isHydrated, mode]);
+  }, [activeProvider, stage1DefaultModel, stage2DefaultModel, isHydrated, mode, providerStorageKey, storageNamespace]);
 
   useEffect(() => {
     if (!isHydrated || !activeProvider) {
@@ -237,8 +268,8 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
     if (!isHydrated || !activeProvider || typeof window === 'undefined') {
       return;
     }
-    window.localStorage.setItem(getApiKeyStorageKey(activeProvider.id), apiKey);
-  }, [activeProvider, apiKey, isHydrated]);
+    window.localStorage.setItem(getApiKeyStorageKey(activeProvider.id, storageNamespace), apiKey);
+  }, [activeProvider, apiKey, isHydrated, storageNamespace]);
 
   useEffect(() => {
     if (!isHydrated || !activeProvider || typeof window === 'undefined') {
@@ -247,8 +278,11 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
     if (!selectedStage1Model) {
       return;
     }
-    window.localStorage.setItem(getStage1ModelStorageKey(activeProvider.id), selectedStage1Model);
-  }, [activeProvider, isHydrated, selectedStage1Model]);
+    window.localStorage.setItem(
+      getStage1ModelStorageKey(activeProvider.id, storageNamespace),
+      selectedStage1Model,
+    );
+  }, [activeProvider, isHydrated, selectedStage1Model, storageNamespace]);
 
   useEffect(() => {
     if (mode !== 'dual') return;
@@ -258,8 +292,11 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
     if (!selectedStage2Model) {
       return;
     }
-    window.localStorage.setItem(getStage2ModelStorageKey(activeProvider.id), selectedStage2Model);
-  }, [activeProvider, isHydrated, mode, selectedStage2Model]);
+    window.localStorage.setItem(
+      getStage2ModelStorageKey(activeProvider.id, storageNamespace),
+      selectedStage2Model,
+    );
+  }, [activeProvider, isHydrated, mode, selectedStage2Model, storageNamespace]);
 
   const providerSelectOptions = useMemo<CustomSelectOption[]>(() => {
     return providerOptions.map((provider): CustomSelectOption => ({
@@ -332,7 +369,7 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
 
   return (
     <div className="input-group">
-      <label className="input-label" htmlFor={providerSelectId}>自定义 AI 能力提供商 (可选)</label>
+      <label className="input-label" htmlFor={providerSelectId}>{labelText}</label>
       <CustomSelect
         options={providerSelectOptions}
         value={selectedProviderId}
@@ -340,11 +377,7 @@ const AiProviderSelector: React.FC<AiProviderSelectorProps> = ({ onConfigChange,
         placeholder="选择供应商"
         controlId={providerSelectId}
       />
-      <p className="text-xs text-gray-500">
-        {mode === 'dual'
-          ? '可针对 GM 两阶段分别挑选模型，下面可选“系统默认策略”或自带 API Key。'
-          : '更多提供商正在添加中...'}
-      </p>
+      <p className="text-xs text-gray-500">{helperText}</p>
       {activeProvider && activeProvider.id !== 'system' && (
         <div className="mt-4">
           <Link
