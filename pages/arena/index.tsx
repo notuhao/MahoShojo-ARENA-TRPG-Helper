@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Head from 'next/head';
 import Footer from '@/components/Footer';
-import PageHero from '@/components/PageHero';
 import PartyHud from '@/components/arena/PartyHud';
 import StoryLog from '@/components/arena/StoryLog';
 import PlayerInputPanel from '@/components/arena/PlayerInputPanel';
@@ -174,34 +173,6 @@ const SessionConsolePage: React.FC = () => {
   const aggregatedCustomDefinitions = useMemo(
     () => deriveCustomDefinitions(party),
     [party],
-  );
-
-  const heroMeta = [
-    { label: '队伍成员', value: `${party.length}` },
-    { label: '叙事日志', value: `${storyLog.length}` },
-    { label: '待复核判定', value: `${manualResults.length}`, hint: 'Manual adjudication 队列' },
-  ];
-
-  const stage1Label =
-    stageProviderConfigs.draft?.stage1ModelId ||
-    stageProviderConfigs.draft?.modelId ||
-    stageModelPreferences.draft ||
-    DEFAULT_STAGE1_MODEL;
-
-  const stage2Label =
-    stageProviderConfigs.formatter?.stage2ModelId ||
-    stageProviderConfigs.formatter?.modelId ||
-    stageModelPreferences.formatter ||
-    DEFAULT_STAGE2_MODEL;
-
-  const heroBottomSlot = (
-    <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
-      <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-600">阶段 1 模型 · {stage1Label}</span>
-      <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-600">阶段 2 模型 · {stage2Label}</span>
-      <span className="rounded-full bg-purple-100 px-3 py-1 text-purple-600">
-        自定义判定 · {manualResults.length > 0 ? `${manualResults.length} 条待处理` : '暂无排队'}
-      </span>
-    </div>
   );
 
   const handleStageConfigChange = useCallback((stage: 'draft' | 'formatter', config: UserAIProviderConfig | null) => {
@@ -489,16 +460,15 @@ const SessionConsolePage: React.FC = () => {
       </Head>
       <div className="magic-background-white min-h-screen">
         <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-6 lg:px-8">
-          <PageHero
-            title="叙事终端 · A.R.E.N.A. CONSOLE"
-            description="推行“关键节点 + 混合判定”双阶段AI GM，融合角色卡、模组与人工裁定，生成 Delta JSON 驱动的高互动跑团回合。"
-            activePath="/arena"
-            meta={heroMeta}
-            bottomSlot={heroBottomSlot}
-          />
+          <header className="mb-6 rounded-2xl border border-white/70 bg-white/60 p-6 text-center shadow-sm backdrop-blur">
+            <h1 className="text-3xl font-bold text-purple-700">魔法少女竞技场 · 叙事终端</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              采用“关键节点”循环与“混合动力判定”的高互动性长线叙事界面。
+            </p>
+          </header>
 
           {errorMessage && (
-            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
               <div className="flex items-start justify-between">
                 <p>{errorMessage}</p>
                 <button
@@ -515,7 +485,7 @@ const SessionConsolePage: React.FC = () => {
             </div>
           )}
 
-          <div className="mt-6 flex flex-1 flex-col gap-6 lg:flex-row">
+          <div className="flex flex-1 flex-col gap-6 lg:flex-row">
             <div className="lg:w-80 lg:flex-shrink-0">
               <PartyHud characters={party} />
 
