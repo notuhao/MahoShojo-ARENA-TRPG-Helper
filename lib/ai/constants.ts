@@ -91,31 +91,31 @@ export const AI_PROVIDER_CATALOG: AIProviderOption[] = [
                 label: 'Gemini 2.5 Flash Lite',
                 description: 'Google 旗下上一代的最先进模型系列，性能略差但是速度很快，是魔法少女生成器默认使用的轻量模型。'
             },
-            // {
-            //     value: 'glm-4.6',
-            //     label: 'GLM-4.6',
-            //     description: '智谱旗下的大模型。'
-            // },
-            // {
-            //     value: 'deepseek-v3.2-exp',
-            //     label: 'DeepSeek V3.2 Exp',
-            //     description: 'DeepSeek 最新版本。'
-            // },
-            // {
-            //     value: 'deepseek-r1',
-            //     label: 'DeepSeek R1',
-            //     description: 'DeepSeek 思考版本。'
-            // },
-            // {
-            //     value: 'kimi-k2',
-            //     label: 'Kimi K2',
-            //     description: 'Moonshot 旗下的大模型，可以看出我懒得写描述了。'
-            // },
-            // {
-            //     value: 'doubao-seed-1-6',
-            //     label: 'Doubao Seed 1.6',
-            //     description: '怎么还有豆包（暂不稳定，不推荐使用）'
-            // },
+            {
+                value: 'glm-4.6',
+                label: '【慎用】GLM-4.6',
+                description: '智谱旗下的大模型。'
+            },
+            {
+                value: 'deepseek-v3.2-exp',
+                label: '【慎用】DeepSeek V3.2 Exp',
+                description: 'DeepSeek 最新版本。'
+            },
+            {
+                value: 'deepseek-r1',
+                label: '【慎用】DeepSeek R1',
+                description: 'DeepSeek 思考版本。'
+            },
+            {
+                value: 'kimi-k2',
+                label: '【慎用】Kimi K2',
+                description: 'Moonshot 旗下的大模型，可以看出我懒得写描述了。'
+            },
+            {
+                value: 'doubao-seed-1-6',
+                label: '【慎用】Doubao Seed 1.6',
+                description: '怎么还有豆包（暂不稳定，不推荐使用）'
+            },
         ]
     },
     {
@@ -136,22 +136,22 @@ export const AI_PROVIDER_CATALOG: AIProviderOption[] = [
                 value: 'ZhipuAI/GLM-4.6',
                 label: 'GLM-4.6',
                 description: '智谱旗下的大模型，更多模型正在添加中。'
-            }
-            // {
-            //     value: 'MiniMax/MiniMax-M2',
-            //     label: 'MiniMax-M2',
-            //     description: 'DeepSeek 最新版本。'
-            // },
-            // {
-            //     value: 'deepseek-ai/DeepSeek-R1-0528',
-            //     label: 'DeepSeek R1',
-            //     description: 'DeepSeek 思考版本。'
-            // },
-            // {
-            //     value: 'moonshotai/Kimi-K2-Thinking',
-            //     label: 'Kimi K2 Thinking',
-            //     description: 'Moonshot 旗下的大模型，可以看出我懒得写描述了。'
-            // },
+            },
+            {
+                value: 'MiniMax/MiniMax-M2',
+                label: '【慎用】MiniMax-M2',
+                description: 'DeepSeek 最新版本。'
+            },
+            {
+                value: 'deepseek-ai/DeepSeek-R1-0528',
+                label: '【慎用】DeepSeek R1',
+                description: 'DeepSeek 思考版本。'
+            },
+            {
+                value: 'moonshotai/Kimi-K2-Thinking',
+                label: '【慎用】Kimi K2 Thinking',
+                description: 'Moonshot 旗下的大模型，可以看出我懒得写描述了。'
+            },
         ]
     },
     {
