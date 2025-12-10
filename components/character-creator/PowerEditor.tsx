@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { Power } from '../../pages/character/create';
 import { EFFECT_TAGS, MODIFIER_TAGS, EffectTag, ModifierTag } from '../../lib/trpg/powers';
+import { calcPowerMpCost } from '@/lib/trpg/mp';
 import { X } from 'lucide-react';
 
 interface PowerEditorProps {
@@ -41,6 +42,21 @@ const PowerEditor: React.FC<PowerEditorProps> = ({
     });
     return cost;
   }, [power, selectedEffect, allModifierTags]);
+
+  // MP消耗参考：满功率与低功率（仅核心效果）
+  const mpFullPower = useMemo(() => {
+    return calcPowerMpCost(power, allEffectTags, allModifierTags);
+  }, [power, allEffectTags, allModifierTags]);
+
+  const mpLowPower = useMemo(() => {
+    const lowRank = selectedEffect?.isScalable ? 1 : power.rank;
+    return calcPowerMpCost(
+      power,
+      allEffectTags,
+      allModifierTags,
+      { outputRank: lowRank, activeModifierIds: [] }
+    );
+  }, [power, allEffectTags, allModifierTags, selectedEffect]);
 
   // 更新效果标签
   const handleEffectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -136,6 +152,18 @@ const PowerEditor: React.FC<PowerEditorProps> = ({
               </label>
             );
           })}
+        </div>
+      </div>
+
+      {/* 魔力消耗参考 */}
+      <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+        <p className="text-sm font-semibold text-blue-800 mb-1">魔力消耗参考</p>
+        <p className="text-xs text-blue-700">
+          公式：当前使用的效果阶数 + ceil(激活修正PCP / 3)
+        </p>
+        <div className="flex flex-wrap gap-3 mt-2 text-sm text-blue-900">
+          <span className="font-semibold">满功率：{mpFullPower} MP</span>
+          <span>低功率(仅核心效果)：{mpLowPower} MP</span>
         </div>
       </div>
 

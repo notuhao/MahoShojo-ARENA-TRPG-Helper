@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { CharacterAttributes } from '../../pages/character/create';
+import { calcMaxMp } from '@/lib/trpg/mp';
 
 /**
  * @fileoverview 衍生数值面板组件 (v0.1.1)
@@ -41,7 +42,7 @@ const DerivedStatsPanel: React.FC<DerivedStatsPanelProps> = ({ attributes }) => 
 
   // 根据规则书公式计算各项衍生值的【最大值】或【基础值】
   const maxHp = Math.ceil((CON + STR) / 10);
-  const maxMp = Math.ceil(MAG / 5);
+  const maxMp = calcMaxMp(MAG);
   const maxRadiance = Math.ceil(WILL / 5);
   const dodgeBase = Math.ceil(AGI / 2);
   const { db, build } = getDamageBonusAndBuild(STR + CON);

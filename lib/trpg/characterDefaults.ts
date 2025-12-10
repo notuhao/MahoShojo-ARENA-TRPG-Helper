@@ -2,6 +2,7 @@
 
 import { CharacterSheet, CharacterAttributes, SkillPoints, CharacterInfo } from '@/pages/character/create';
 import { SKILLS } from '@/lib/trpg/skills';
+import { calcMaxMp } from './mp';
 
 /**
  * @fileoverview 定义并导出新角色卡的默认初始状态。
@@ -37,7 +38,7 @@ export const initialCharacterSheet: CharacterSheet = {
   attributes: initialAttributes,
   skills: initialSkillPoints,
   hp: { current: 8, max: 8 },
-  mp: { current: 8, max: 8 },
+  mp: { current: calcMaxMp(initialAttributes.MAG), max: calcMaxMp(initialAttributes.MAG) },
   radiance: { current: 8, max: 8 },
   shadowPoints: 0,
   magicConstruct: { name: '', description: '' },

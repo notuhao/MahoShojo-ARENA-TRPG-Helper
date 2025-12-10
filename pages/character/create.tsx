@@ -25,6 +25,8 @@ import { AIGeneratedCharacterData } from '@/lib/schemas/characterSheetSchema';
 import { X, Upload, ClipboardPaste } from 'lucide-react';
 
 import { initialCharacterSheet } from '../../lib/trpg/characterDefaults';
+import { calcMaxMp } from '@/lib/trpg/mp';
+import ManaUtilitiesPanel from '@/components/character-creator/ManaUtilitiesPanel';
 
 // --- 类型定义区 (v0.1.1) ---
 
@@ -159,7 +161,7 @@ const CharacterCreatorPage: React.FC = () => {
   useEffect(() => {
     const { STR, CON, MAG, WILL } = character.attributes;
     const maxHp = Math.ceil((CON + STR) / 10);
-    const maxMp = Math.ceil(MAG / 5);
+    const maxMp = calcMaxMp(MAG);
     const maxRadiance = Math.ceil(WILL / 5);
     setCharacter(prev => ({
       ...prev,
@@ -434,6 +436,17 @@ const CharacterCreatorPage: React.FC = () => {
             </section>
             <section id="step-6-abilities">
               <PowerCreatorPanel powers={character.powers} onPowersChange={handlePowersChange} customEffectTags={customEffectTags} onCustomEffectTagsChange={setCustomEffectTags} customModifierTags={customModifierTags} onCustomModifierTagsChange={setCustomModifierTags} totalPcp={totalPcp} spentPcp={spentPcpPoints} />
+            </section>
+            <section id="step-6-mp-tools">
+              <ManaUtilitiesPanel
+                powers={character.powers}
+                effectTags={[...EFFECT_TAGS, ...customEffectTags]}
+                modifierTags={[...MODIFIER_TAGS, ...customModifierTags]}
+                mp={character.mp}
+                onMpChange={(newMp) => handleVitalsChange('mp', newMp)}
+                attributes={character.attributes}
+                skills={character.skills}
+              />
             </section>
             <section id="step-7-preview">
               <CharacterSheetDisplay characterSheet={character} powerLevel={powerLevel} onSaveImage={handleSaveImageCallback} spentAttributePoints={spentAttributePoints} spentSkillPoints={spentSkillPoints} spentPcpPoints={spentPcpPoints} customSkills={customSkills} customEffectTags={customEffectTags} customModifierTags={customModifierTags} />
